@@ -57,13 +57,15 @@ function biscolabLaravelReCaptcha(token) {
   right: 10px !important;
   z-index: 9999 !important;
 }
-
-
+</style><style>
 .grecaptcha-badge {
+  position: fixed !important;
+  bottom: 14px !important;
   right: -186px !important;
-  transition: right 0.3s ease-in-out !important;
+  transition: right 0.5s ease-in-out !important;
+  z-index: 9999 !important;
 }
-.grecaptcha-badge.show {
+.grecaptcha-badge.visible {
   right: 10px !important;
 }
 </style></head>
@@ -132,9 +134,11 @@ function onSubmit(token) {
 </script>
 <script>
 window.onload = function () {
-    const badge = document.querySelector('.grecaptcha-badge');
-    if (badge) {
-        badge.classList.add('show');
-    }
+  const badge = document.querySelector('.grecaptcha-badge');
+  if (badge) {
+    setTimeout(() => {
+      badge.classList.add('visible');
+    }, 500); // hafif gecikmeyle göster
+  }
 };
 </script></body></html>
