@@ -50,24 +50,12 @@ function biscolabLaravelReCaptcha(token) {
 }
 </script><script async="" defer="" src="https://www.google.com/recaptcha/api.js"></script><style>
 .grecaptcha-badge {
-  position: fixed !important;
-  bottom: 14px !important;
-  right: -186px !important;
-  width: 256px !important;
-  height: 60px !important;
-  overflow: hidden !important;
-  transition: right 0.5s ease-in-out, opacity 0.3s ease-in-out !important;
-  z-index: 9999 !important;
-  box-shadow: 0 0 5px gray !important;
-  border-radius: 2px !important;
-  opacity: 0.2 !important;
-}
-.grecaptcha-badge.visible {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  bottom: 10px !important;
   right: 10px !important;
-  opacity: 1 !important;
-}
-.grecaptcha-badge.visible:hover {
-  opacity: 1 !important;
+  z-index: 9999 !important;
 }
 </style></head>
 <body style="position: relative; min-height: 100%; top: 0px;">
@@ -133,32 +121,4 @@ function onSubmit(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
 </script>
-<script>
-window.addEventListener("scroll", function () {
-  const badge = document.querySelector('.grecaptcha-badge');
-  const form = document.querySelector('#biscolab-recaptcha-invisible-form');
-  if (badge && form) {
-    const rect = form.getBoundingClientRect();
-    const inView = rect.top < window.innerHeight && rect.bottom > 0;
-    if (inView) {
-      badge.classList.add('visible');
-    } else {
-      badge.classList.remove('visible');
-    }
-  }
-});
-</script><script>
-window.addEventListener("scroll", function () {
-  const badge = document.querySelector('.grecaptcha-badge');
-  const form = document.querySelector('#biscolab-recaptcha-invisible-form');
-  if (badge && form) {
-    const rect = form.getBoundingClientRect();
-    const inView = rect.top < window.innerHeight && rect.bottom > 0;
-    if (inView) {
-      badge.classList.add('visible');
-    } else {
-      badge.classList.remove('visible');
-    }
-  }
-});
-</script></body></html>
+</body></html>
