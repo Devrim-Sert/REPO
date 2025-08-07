@@ -52,7 +52,7 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge {
   position: fixed !important;
   bottom: 14px !important;
-  right: -186px !important;
+  right: -180px !important; /* biraz daha içeri gelsin ki görsel olarak daha yapışık dursun */
   width: 256px !important;
   height: 60px !important;
   overflow: hidden !important;
@@ -63,9 +63,6 @@ function biscolabLaravelReCaptcha(token) {
 }
 .form-hover-zone:hover .grecaptcha-badge {
   right: 0px !important;
-}
-.grecaptcha-badge iframe {
-  transform: translateX(5px); /* Görsel olarak sağa yaslama */
 }
 </style></head>
 <body style="position: relative; min-height: 100%; top: 0px;">
