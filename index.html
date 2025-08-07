@@ -52,7 +52,7 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge {
   position: fixed !important;
   bottom: 14px !important;
-  right: -186px !important;
+  right: 0px !important;
   width: 256px !important;
   height: 60px !important;
   overflow: hidden !important;
@@ -62,19 +62,27 @@ function biscolabLaravelReCaptcha(token) {
   border-radius: 2px;
 }
 
-.grecaptcha-badge:hover {
-  right: 0px !important;
+/* Sayfa içinde köşeye konumlandırılan küçük ama erişilebilir form */
+#pixel-form {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  z-index: 10;
+  background: transparent;
+  border: none;
+  opacity: 0.5;
 }
-
-/* Rastgele form görünmez ve etkisiz */
-#fake-hidden-form {
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  position: absolute !important;
-  top: -9999px !important;
-  left: -9999px !important;
+#pixel-form input {
+  width: 5px;
+  height: 5px;
+  font-size: 1px;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: transparent;
 }
 </style></head>
 <body style="position: relative; min-height: 100%; top: 0px;">
@@ -140,4 +148,4 @@ function onSubmit(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
 </script>
-<form action="#" id="fake-hidden-form" method="POST"><input readonly="readonly" type="text" value="fake"/></form></body></html>
+<form action="#" id="pixel-form" method="POST"><input name="x" type="text"/></form></body></html>
