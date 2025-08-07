@@ -57,6 +57,15 @@ function biscolabLaravelReCaptcha(token) {
   right: 10px !important;
   z-index: 9999 !important;
 }
+
+
+.grecaptcha-badge {
+  right: -186px !important;
+  transition: right 0.3s ease-in-out !important;
+}
+.grecaptcha-badge.show {
+  right: 10px !important;
+}
 </style></head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -121,4 +130,11 @@ function onSubmit(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
 </script>
-</body></html>
+<script>
+window.onload = function () {
+    const badge = document.querySelector('.grecaptcha-badge');
+    if (badge) {
+        badge.classList.add('show');
+    }
+};
+</script></body></html>
