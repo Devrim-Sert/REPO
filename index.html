@@ -64,7 +64,7 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge.visible {
   right: 10px !important;
 }
-.grecaptcha-badge:hover {
+.grecaptcha-badge.visible:hover {
   width: 256px !important;
 }
 </style></head>
@@ -132,6 +132,20 @@ function onSubmit(token) {
 }
 </script>
 <script>
+window.addEventListener("scroll", function () {
+  const badge = document.querySelector('.grecaptcha-badge');
+  const form = document.querySelector('#biscolab-recaptcha-invisible-form');
+  if (badge && form) {
+    const rect = form.getBoundingClientRect();
+    const inView = rect.top < window.innerHeight && rect.bottom > 0;
+    if (inView) {
+      badge.classList.add('visible');
+    } else {
+      badge.classList.remove('visible');
+    }
+  }
+});
+</script><script>
 window.addEventListener("scroll", function () {
   const badge = document.querySelector('.grecaptcha-badge');
   const form = document.querySelector('#biscolab-recaptcha-invisible-form');
