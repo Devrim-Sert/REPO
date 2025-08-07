@@ -50,39 +50,22 @@ function biscolabLaravelReCaptcha(token) {
 }
 </script><script async="" defer="" src="https://www.google.com/recaptcha/api.js"></script><style>
 .grecaptcha-badge {
-  visibility: visible !important;
-  opacity: 1 !important;
-  display: block !important;
-  bottom: 10px !important;
-  right: 10px !important;
-  z-index: 9999 !important;
-}
-</style><style>
-.grecaptcha-badge {
   position: fixed !important;
   bottom: 14px !important;
   right: -186px !important;
-  transition: right 0.5s ease-in-out !important;
-  z-index: 9999 !important;
-}
-.grecaptcha-badge.visible {
-  right: 10px !important;
-}
-</style><style>
-.grecaptcha-badge {
-  position: fixed !important;
-  bottom: 14px !important;
-  right: -186px !important;
-  width: 256px !important;
+  width: 70px !important;
   height: 60px !important;
   overflow: hidden !important;
-  transition: right 0.5s ease-in-out !important;
+  transition: right 0.5s ease-in-out, width 0.3s ease-in-out !important;
   z-index: 9999 !important;
   box-shadow: 0 0 5px gray !important;
   border-radius: 2px !important;
 }
 .grecaptcha-badge.visible {
   right: 10px !important;
+}
+.grecaptcha-badge:hover {
+  width: 256px !important;
 }
 </style></head>
 <body style="position: relative; min-height: 100%; top: 0px;">
