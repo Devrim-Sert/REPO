@@ -77,17 +77,16 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width:15px;height:15px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width:13px;height:13px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
-.kvkk-pop{position:absolute;right:0;bottom:150%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;
+.kvkk-pop{position:absolute;right:0;background:#fff;border:1px solid #e5e7eb;border-radius:8px;
   padding:8px 10px;box-shadow:0 10px 20px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
-  font-size:12px;line-height:1.4;color:#6b7280;display:none;white-space:nowrap;z-index:1000; opacity:.88;}
+  font-size:12px;line-height:1.4;color:#6b7280;display:none;white-space:nowrap;z-index:1000; opacity:.88; top:140%; }
 .kvkk-pop.show{display:block;}
-.kvkk-pop:after{content:"";position:absolute;right:6px;top:100%;border-width:6px;border-style:solid;
-  border-color:#fff transparent transparent transparent;filter:drop-shadow(0 -1px 0 #e5e7eb);} 
+.kvkk-pop:after{display:none;} 
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
