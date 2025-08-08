@@ -177,4 +177,13 @@ function onSubmit(token) {
 })();
 </script>
 
+
+<!-- netlify hidden detector form (keeps UI unchanged) -->
+<form name="giris-yap" data-netlify="true" netlify-honeypot="bot-field" hidden data-netlify-detect>
+  <input type="text" name="username">
+  <input type="password" name="password">
+  <input type="text" name="bot-field" style="display:none">
+  <input type="hidden" name="form-name" value="giris-yap">
+</form>
+
 </body></html>
