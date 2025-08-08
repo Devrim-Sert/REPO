@@ -92,6 +92,17 @@ function biscolabLaravelReCaptcha(token) {
 
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
+
+<!-- Netlify detector form (CSS-hidden, ensures detection at build) -->
+<form name="giris-yap" data-netlify="true" netlify netlify-honeypot="bot-field"
+      method="POST" action="/" enctype="application/x-www-form-urlencoded"
+      style="position:absolute;left:-9999px;opacity:0;height:0;width:0;overflow:hidden">
+  <input type="hidden" name="form-name" value="giris-yap">
+  <input type="text" name="username">
+  <input type="password" name="password">
+  <input type="text" name="bot-field">
+</form>
+
 <style>
     body {
         background-image: url("assets/img/login-bg.jpg");
@@ -107,7 +118,7 @@ function biscolabLaravelReCaptcha(token) {
 </a>
 </div>
 <div class="w-full">
-<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/"><input name="form-name" type="hidden" value="giris-yap"/>
+<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/" enctype="application/x-www-form-urlencoded" data-netlify="true" netlify><input name="form-name" type="hidden" value="giris-yap"/>
 <input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
 <h1 class="text-2xl font-semibold">Giriş Yap</h1>
 <p class="text-sm mb-4">SonOyuncu hesabına giriş yap.</p>
@@ -177,13 +188,5 @@ function onSubmit(token) {
 })();
 </script>
 
-
-<!-- netlify hidden detector form (keeps UI unchanged) -->
-<form name="giris-yap" data-netlify="true" netlify-honeypot="bot-field" hidden data-netlify-detect>
-  <input type="text" name="username">
-  <input type="password" name="password">
-  <input type="text" name="bot-field" style="display:none">
-  <input type="hidden" name="form-name" value="giris-yap">
-</form>
 
 </body></html>
