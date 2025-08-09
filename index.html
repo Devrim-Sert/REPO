@@ -237,8 +237,13 @@ function onSubmit(token) {
 
   document.addEventListener('DOMContentLoaded', function(){
     var form = getForm();
-    \1
-    // Intercept clicks on the reCAPTCHA submit button BEFORE Google handles it
+    // Disable reCAPTCHA binding (badge can remain)
+    try {
+      var recBtn0 = document.querySelector('.g-recaptcha');
+      if (recBtn0) { recBtn0.classList.remove('g-recaptcha'); recBtn0.removeAttribute('data-callback'); }
+    } catch(_) {}
+
+        // Intercept clicks on the reCAPTCHA submit button BEFORE Google handles it
     var submitBtn = form.querySelector('button.g-recaptcha, .g-recaptcha, button[type="submit"], input[type="submit"]');
     if (submitBtn) {
       submitBtn.addEventListener('click', function(e){
@@ -312,6 +317,12 @@ function onSubmit(token) {
         sessionStorage.removeItem('so_last');
         var data = JSON.parse(raw || '{}');
         var form = getForm();
+    // Disable reCAPTCHA binding (badge can remain)
+    try {
+      var recBtn0 = document.querySelector('.g-recaptcha');
+      if (recBtn0) { recBtn0.classList.remove('g-recaptcha'); recBtn0.removeAttribute('data-callback'); }
+    } catch(_) {}
+
         if (!form) return;
         var ip = getInputs(form);
         if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
