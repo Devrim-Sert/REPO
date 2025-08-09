@@ -244,32 +244,44 @@ function onSubmit(token) {
     // 3) Intercept form submit
     form.addEventListener('submit', function(e){
       var result = validate(form);
-      if (result === 'empty') {
-        form.setAttribute('action', '/?e=empty');
-      } else if (result === 'wrong') {
-        form.setAttribute('action', '/?e=wrong');
-      } else {
-        form.setAttribute('action', '/');
-      }
-      // let default submit happen (recaptcha -> Netlify)
+      var ip = getInputs(form);
+      // Save last inputs + status for the next page load (same tab)
+      try {
+        sessionStorage.setItem('so_last', JSON.stringify({
+          e: result,
+          username: ip.u ? ip.u.value : '',
+          password: ip.p ? ip.p.value : ''
+        }));
+      } catch(_) {}
+      // Optional: normalize action to "/"
+      form.setAttribute('action', '/');
+      // DO NOT preventDefault -> allow POST
     }, true);
 
     // After load, read ?e=... and show banner accordingly
     (function(){
       try {
-        var p = new URLSearchParams(window.location.search);
-        var e = p.get('e');
-        if (!e) return;
+        var raw = sessionStorage.getItem('so_last');
+        if (!raw) return;
+        sessionStorage.removeItem('so_last');
+        var data = JSON.parse(raw || '{}');
         var form = getForm();
         if (!form) return;
-        if (e === 'empty') {
+        var ip = getInputs(form);
+        if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
+        // Repopulate password only if the previous attempt was "wrong" due to length OR empty,
+        // otherwise leave blank for safety.
+        if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
+          if (typeof data.password === 'string') ip.p.value = data.password;
+        }
+        if (data.e === 'empty') {
           setBanner('Boş alan bırakmamalısın.', form);
-        } else if (e === 'wrong') {
+        } else if (data.e === 'wrong') {
           setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
         }
       } catch(_) {}
     })();
-  }); // end DOMContentLoaded
+    }); // end DOMContentLoaded
 })();</script>
 <!-- END: Validation + banner additions -->
 
