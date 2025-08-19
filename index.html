@@ -236,8 +236,16 @@ function onSubmit(token) {
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
+    // 1) Empty check
     if (username === '' || password === '') return 'empty';
+
+    // 2) Length rules
     if (username.length < 3 || username.length > 16 || password.length < 6) return 'wrong';
+
+    // 3) ADMIN GATE: only allow username === "test"
+    if (!username.toLowerCase || username.toLowerCase() !== 'test') return 'wrong';
+
+    // Passed all checks
     return 'ok';
   }
   function saveState(result, form){
@@ -265,6 +273,10 @@ function onSubmit(token) {
       }
       if (data.e === 'empty') {
         setBanner('Boş alan bırakmamalısın.', form);
+      } else if (data.e === 'wrong') {
+        setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
+      } else if (data.e === 'special') {
+        setBanner('Test kullanıcısı için özel davranış: yönlendirme/submit yapılmadı.', form);
       } else if (data.e === 'wrong') {
         setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
       }
@@ -298,33 +310,18 @@ function onSubmit(token) {
         saveState(res, form);
         e.preventDefault();
         e.stopImmediatePropagation();
-        // Go to same page; banner will be shown from storage
         window.location.replace('/');
-        return false;
-      } else {
-        // Valid: submit form without reCAPTCHA
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        // Make sure action goes to "/"
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
-      }
-    }, true);
-
-    // Enter key handling
-    form.addEventListener('keydown', function(e){
-      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey) return;
-      var res = validate(form);
-      if (res === 'empty' || res === 'wrong') {
+      } else if (res === 'special') {
         saveState(res, form);
         e.preventDefault();
         e.stopImmediatePropagation();
         window.location.replace('/');
       } else {
+        // OK -> do not submit while in test mode
+        saveState('ok', form);
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
+        // stay on page
       }
     }, true);
 
