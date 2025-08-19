@@ -337,56 +337,31 @@ function onSubmit(token) {
 
 
 
-<!-- BEGIN: GT synchronized delay (0.70–0.90s) -->
-<style id="gt-delay-style">
-  /* hidden state for delayed translate parts */
-  #google_translate_element .gt-delay { visibility: hidden; opacity: 0; }
-</style>
+<!-- BEGIN translate delay (only) -->
 <script>
-(function(){
-  // pick 0.70–0.90 with two decimals
-  var ms = (Math.floor(Math.random()*21)+70) * 10; // 700–900 ms (10ms step -> 0.7x two decimals)
-  var root = document.getElementById('google_translate_element');
-  if(!root) return;
-  var gadget = root.querySelector('.goog-te-gadget');
-  if(!gadget) return;
+(function () {
+  // Single shared delay between 0.60s and 0.70s (two decimals)
+  var delaySec = Number((Math.random() * 0.10 + 0.60).toFixed(2));
+  var delayMs = Math.round(delaySec * 1000);
 
-  // 1) "Dili Seçin" select + down arrow
-  var select = root.querySelector('.goog-te-combo');
-  if (select) select.classList.add('gt-delay');
+  function hideTranslate() {
+    var el = document.getElementById('google_translate_element');
+    if (!el) return;
+    el.style.display = 'none';
+  }
 
-  // 2) Google logo + "Çeviri" (nowrap container; delays white background area with it)
-  var nowrap = gadget.querySelector('span[style*="white-space"]');
-  if (nowrap) nowrap.classList.add('gt-delay');
+  function showTranslate() {
+    var el = document.getElementById('google_translate_element');
+    if (!el) return;
+    el.style.display = '';
+  }
 
-  // 3) Naked text: "tarafından desteklenmektedir" -> wrap in span and delay
-  (function wrapPoweredBy(){
-    var nodes = Array.prototype.slice.call(gadget.childNodes);
-    for (var i=0;i<nodes.length;i++){
-      var n = nodes[i];
-      if (n.nodeType === 3) {
-        var txt = (n.nodeValue||'').trim();
-        if (txt && /tarafından desteklenmektedir/i.test(txt)){
-          var span = document.createElement('span');
-          span.className = 'gt-delay';
-          span.textContent = n.nodeValue;
-          gadget.replaceChild(span, n);
-          break;
-        }
-      }
-    }
-  })();
-
-  setTimeout(function(){
-    root.querySelectorAll('.gt-delay').forEach(function(el){
-      el.style.transition = 'opacity .2s ease';
-      el.style.visibility = 'visible';
-      el.style.opacity = '1';
-      el.classList.remove('gt-delay');
-    });
-  }, ms);
+  document.addEventListener('DOMContentLoaded', function () {
+    hideTranslate();
+    setTimeout(showTranslate, delayMs);
+  });
 })();
 </script>
-<!-- END: GT synchronized delay -->
+<!-- END translate delay (only) -->
 
 </body></html>
