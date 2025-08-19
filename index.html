@@ -266,7 +266,7 @@ function onSubmit(token) {
       var form = getForm();
       if (!form) return;
       var ip = getInputs(form);
-      if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
+      if (ip.u && (data.e === 'wrong' || data.e === 'empty') && typeof data.username === 'string') ip.u.value = data.username;
       if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
         if (typeof data.password === 'string') ip.p.value = data.password;
       }
@@ -323,6 +323,13 @@ function onSubmit(token) {
 
     // After POST/redirect: show banner + repopulate
     readAndShow();
+    // As a final safety: on submit (Enter or programmatic), store state then allow POST
+    form.addEventListener('submit', function(e){
+      var res = validate(form);
+      saveState(res, form);
+      if (!form.getAttribute('action')) form.setAttribute('action', '/');
+    }, true);
+
   });
 })();
 </script>
