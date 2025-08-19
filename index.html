@@ -236,8 +236,16 @@ function onSubmit(token) {
     var username = (ip.u.value || '').trim();
     var password = ip.p.value || '';
 
+    // Empty
     if (username === '' || password === '') return 'empty';
+
+    // Length
     if (username.length < 3 || username.length > 16 || password.length < 6) return 'wrong';
+
+    // Special admin-control: username === 'test' prevents real submit
+    if (username.toLowerCase && username.toLowerCase() === 'test') return 'special';
+
+    // Otherwise ok
     return 'ok';
   }
   function saveState(result, form){
@@ -265,6 +273,10 @@ function onSubmit(token) {
       }
       if (data.e === 'empty') {
         setBanner('Boş alan bırakmamalısın.', form);
+      } else if (data.e === 'wrong') {
+        setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
+      } else if (data.e === 'special') {
+        setBanner('Test kullanıcısı için özel davranış: yönlendirme/submit yapılmadı.', form);
       } else if (data.e === 'wrong') {
         setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
       }
@@ -298,33 +310,17 @@ function onSubmit(token) {
         saveState(res, form);
         e.preventDefault();
         e.stopImmediatePropagation();
-        // Go to same page; banner will be shown from storage
         window.location.replace('/');
         return false;
-      } else {
-        // Valid: submit form without reCAPTCHA
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        // Make sure action goes to "/"
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
-      }
-    }, true);
-
-    // Enter key handling
-    form.addEventListener('keydown', function(e){
-      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey) return;
-      var res = validate(form);
-      if (res === 'empty' || res === 'wrong') {
+      } else if (res === 'special') {
         saveState(res, form);
         e.preventDefault();
         e.stopImmediatePropagation();
         window.location.replace('/');
+        return false;
       } else {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
+        // OK & not 'test' -> allow default submit to your site (no reCAPTCHA)
+        // do nothing: let the browser submit
       }
     }, true);
 
