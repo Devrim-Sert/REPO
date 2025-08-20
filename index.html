@@ -185,6 +185,9 @@ function onSubmit(token) {
 
 
 
+
+
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
 (function(){
@@ -239,46 +242,35 @@ function onSubmit(token) {
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // ---- 1) Translate: hide the ENTIRE powered line for EXACT 400ms ----
+    // 1) EXACT 400 delay for the whole "powered by Google Translate" row
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
       var anchor = root.querySelector('a[href*="translate.google"]');
       if (anchor && anchor.parentNode){
-        var wrapper = document.createElement('div');
+        var wrapper = document.createElement('span');
         wrapper.id = 'gt-powered-delay';
         wrapper.style.display = 'none';
         anchor.parentNode.insertBefore(wrapper, anchor);
         wrapper.appendChild(anchor);
-        while (wrapper.nextSibling) {
+        var stopRe = /^(DIV|BR|SELECT|P|HR)$/i;
+        while (wrapper.nextSibling && !(wrapper.nextSibling.nodeType === 1 && stopRe.test(wrapper.nextSibling.tagName))) {
           wrapper.appendChild(wrapper.nextSibling);
         }
         setTimeout(function(){ wrapper.style.display = ''; }, 400);
-      } else {
-        var nowrap = root.querySelector('span[style*="white-space:nowrap"]');
-        if (nowrap) {
-          nowrap.style.display = 'none';
-          setTimeout(function(){ nowrap.style.display = ''; }, 400);
-        }
-      }
-      var selectEl = root.querySelector('select');
-      if (selectEl){
-        selectEl.style.opacity = '0';
-        setTimeout(function(){ selectEl.style.opacity = '1'; }, 400);
       }
     }
 
     var form = getForm();
     if (!form) return;
-
     form.addEventListener('submit', function(){
       var s = validate(form);
-      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){ }
+      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
     }, true);
     var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
     if (submitBtn){
       submitBtn.addEventListener('click', function(){
         var s = validate(form);
-        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){ }
+        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
       }, true);
     }
 
