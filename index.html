@@ -188,6 +188,9 @@ function onSubmit(token) {
 
 
 
+
+
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
 (function(){
@@ -242,24 +245,38 @@ function onSubmit(token) {
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // 1) EXACT 400 delay for the whole "powered by Google Translate" row
+    // ---- 1) EXACT 400 delay for the full "powered by Google Translate" row ----
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
       var anchor = root.querySelector('a[href*="translate.google"]');
-      if (anchor && anchor.parentNode){
-        var wrapper = document.createElement('span');
-        wrapper.id = 'gt-powered-delay';
-        wrapper.style.display = 'none';
-        anchor.parentNode.insertBefore(wrapper, anchor);
-        wrapper.appendChild(anchor);
-        var stopRe = /^(DIV|BR|SELECT|P|HR)$/i;
-        while (wrapper.nextSibling && !(wrapper.nextSibling.nodeType === 1 && stopRe.test(wrapper.nextSibling.tagName))) {
-          wrapper.appendChild(wrapper.nextSibling);
+      if (anchor){
+        var start = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
+        var wrap = document.createElement('span');
+        wrap.id = 'gt-powered-delay';
+        wrap.style.display = 'none'; // hide whole row incl. its white background
+        start.parentNode.insertBefore(wrap, start);
+        wrap.appendChild(start);
+
+        // Include the <br> and subsequent inline/text siblings up to (but not including) the <select>
+        var node = wrap.nextSibling;
+        while (node){
+          if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
+          var next = node.nextSibling;
+          wrap.appendChild(node);
+          node = next;
         }
-        setTimeout(function(){ wrapper.style.display = ''; }, 400);
+        setTimeout(function(){ wrap.style.display = ''; }, 400);
+
+        // Delay the select content (Dili Seçiniz) by the same delay (keep slot)
+        var selectEl = root.querySelector('select');
+        if (selectEl){
+          selectEl.style.opacity = '0';
+          setTimeout(function(){ selectEl.style.opacity = '1'; }, 400);
+        }
       }
     }
 
+    // ---- 2) Always POST; record status BEFORE submit (no preventDefault) ----
     var form = getForm();
     if (!form) return;
     form.addEventListener('submit', function(){
@@ -274,6 +291,7 @@ function onSubmit(token) {
       }, true);
     }
 
+    // ---- 3) After POST: show banner; inputs ALWAYS empty ----
     var status = sessionStorage.getItem(STATUS_KEY);
     if (status){ sessionStorage.removeItem(STATUS_KEY); showBanner(status, form); }
     var ip = getInputs(form);
