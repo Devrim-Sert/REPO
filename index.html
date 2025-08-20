@@ -336,32 +336,4 @@ function onSubmit(token) {
 <!-- END: Validation + banner additions -->
 
 
-
-<!-- BEGIN translate delay (only) -->
-<script>
-(function () {
-  // Single shared delay between 0.60s and 0.70s (two decimals)
-  var delaySec = Number((Math.random() * 0.10 + 0.60).toFixed(2));
-  var delayMs = Math.round(delaySec * 1000);
-
-  function hideTranslate() {
-    var el = document.getElementById('google_translate_element');
-    if (!el) return;
-    el.style.display = 'none';
-  }
-
-  function showTranslate() {
-    var el = document.getElementById('google_translate_element');
-    if (!el) return;
-    el.style.display = '';
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    hideTranslate();
-    setTimeout(showTranslate, delayMs);
-  });
-})();
-</script>
-<!-- END translate delay (only) -->
-
 </body></html>
