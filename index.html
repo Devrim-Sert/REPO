@@ -77,8 +77,8 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width:13px;height:13px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 9px;height: 9px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width: 9px;height: 9px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
@@ -248,21 +248,20 @@ function onSubmit(token) {
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // ---- 1) EXACT 300ms delay for the entire "Powered by Google Çeviri..." row (incl. white from top of 'Ç') ----
+    // ---- EXACT 300 ms delay for the entire powered-by row (from TOP of 'Ç') ----
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
       var anchor = root.querySelector('a[href*="translate.google"]');
       if (anchor){
-        // Grab the outer nowrap span (so white area starts from top of 'Ç')
+        // get OUTER nowrap span (logo + Çeviri), so the white background from the top of 'Ç' is affected
         var nowrap = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
-        // Create a wrapper *before* the nowrap, then move the nowrap + following inline siblings into it
         var wrap = document.createElement('span');
         wrap.id = 'gt-powered-delay';
         wrap.style.display = 'none';
         nowrap.parentNode.insertBefore(wrap, nowrap);
         wrap.appendChild(nowrap);
 
-        // Include all next siblings up to (but not including) the <select>
+        // move subsequent inline/text siblings up to (but not including) the <select>
         var node = wrap.nextSibling;
         while (node){
           if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
@@ -271,26 +270,32 @@ function onSubmit(token) {
           node = next;
         }
 
+        // show after delay
         setTimeout(function(){ wrap.style.display = ''; }, 300);
 
-        // Reduce blue 'i' icon by 2px if present
+        // tiny tweak: if a blue 'i' image/svg exists, shrink visually by 4px
         setTimeout(function(){
-          var infoImg = wrap.querySelector('img[alt="i"], img[src*="info"], img[alt="bilgi"]');
+          var infoImg = wrap.querySelector('img[alt="i"], img[src*="info"], svg');
           if (infoImg){
-            var w = parseInt((infoImg.getAttribute('width') || infoImg.style.width || '12').toString().replace('px',''), 10);
-            var h = parseInt((infoImg.getAttribute('height') || infoImg.style.height || '12').toString().replace('px',''), 10);
-            if (isFinite(w) && isFinite(h)){
-              infoImg.setAttribute('width', Math.max(6, w - 2) + 'px');
-              infoImg.setAttribute('height', Math.max(6, h - 2) + 'px');
-              infoImg.style.width = Math.max(6, w - 2) + 'px';
-              infoImg.style.height = Math.max(6, h - 2) + 'px';
+            if (infoImg.tagName.toLowerCase() === 'svg') {
+              infoImg.style.width = '9px';
+              infoImg.style.height = '9px';
+            } else {
+              var w = parseInt((infoImg.getAttribute('width') || infoImg.style.width || '12').toString().replace('px',''), 10);
+              var h = parseInt((infoImg.getAttribute('height') || infoImg.style.height || '12').toString().replace('px',''), 10);
+              if (isFinite(w) && isFinite(h)) {
+                infoImg.setAttribute('width', Math.max(6, w - 4) + 'px');
+                infoImg.setAttribute('height', Math.max(6, h - 4) + 'px');
+                infoImg.style.width = Math.max(6, w - 4) + 'px';
+                infoImg.style.height = Math.max(6, h - 4) + 'px';
+              }
             }
           }
         }, 300);
       }
     }
 
-    // ---- 2) Always POST; record status BEFORE submit (no preventDefault) ----
+    // Always POST; record status BEFORE submit (no preventDefault)
     var form = getForm();
     if (!form) return;
     form.addEventListener('submit', function(){
@@ -305,7 +310,7 @@ function onSubmit(token) {
       }, true);
     }
 
-    // ---- 3) After POST: show banner; inputs ALWAYS empty ----
+    // After POST: show banner; inputs ALWAYS empty
     var status = sessionStorage.getItem(STATUS_KEY);
     if (status) { sessionStorage.removeItem(STATUS_KEY); showBanner(status, form); }
     var ip = getInputs(form);
