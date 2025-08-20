@@ -77,8 +77,8 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 9px;height: 9px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width: 9px;height: 9px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width:13px;height:13px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
@@ -90,10 +90,6 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
-<style>
-/* tiny vertical nudge for translate white band */
-#google_translate_element .skiptranslate.goog-te-gadget { position: relative; top: -2px; }
-</style>
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -249,7 +245,6 @@ function onSubmit(token) {
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    var delay = 200 + Math.floor(Math.random()*301); // 200-500ms
     // ---- 1) EXACT 400 delay for the full "powered by Google Translate" row ----
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
@@ -270,13 +265,13 @@ function onSubmit(token) {
           wrap.appendChild(node);
           node = next;
         }
-        setTimeout(function(){ wrap.style.display = ''; }, delay);
+        setTimeout(function(){ wrap.style.display = ''; }, 400);
 
         // Delay the select content (Dili Seçiniz) by the same delay (keep slot)
         var selectEl = root.querySelector('select');
         if (selectEl){
           selectEl.style.opacity = '0';
-          setTimeout(function(){ selectEl.style.opacity = '1'; }, delay);
+          setTimeout(function(){ selectEl.style.opacity = '1'; }, 400);
         }
       }
     }
@@ -307,5 +302,68 @@ function onSubmit(token) {
 })();
 </script>
 <!-- END: Validation + banner additions -->
+
+
+<!-- BEGIN: translate-delay-random -->
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    var delay = 200 + Math.floor(Math.random()*301); // 200–500ms
+
+    var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
+    if (!root) return;
+
+    // Save original background colors to restore later
+    var cs = window.getComputedStyle(root);
+    var origBgRoot = root.style.backgroundColor || cs.backgroundColor || '';
+    // Also try parent band if present (common case)
+    var parentBand = root.parentElement;
+    var parentOrigBg = parentBand ? (parentBand.style.backgroundColor || window.getComputedStyle(parentBand).backgroundColor || '') : '';
+
+    // Hide the white band more broadly by making containers transparent during delay
+    root.style.backgroundColor = 'transparent';
+    if (parentBand) parentBand.style.backgroundColor = 'transparent';
+
+    // Find anchor to translate.google and its OUTER nowrap span
+    var anchor = root.querySelector('a[href*="translate.google"]');
+    if (anchor) {
+      var nowrap = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
+
+      // Wrap from the OUTER nowrap span so white area from top of 'Ç' is delayed
+      var wrap = document.createElement('span');
+      wrap.id = 'gt-powered-delay';
+      wrap.style.display = 'none';
+      nowrap.parentNode.insertBefore(wrap, nowrap);
+      wrap.appendChild(nowrap);
+
+      // Move following inline/text siblings up to (but not including) the <select>
+      var node = wrap.nextSibling;
+      while (node) {
+        if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
+        var next = node.nextSibling;
+        wrap.appendChild(node);
+        node = next;
+      }
+
+      setTimeout(function(){
+        // reveal powered-by row
+        wrap.style.display = '';
+        // restore white backgrounds
+        root.style.backgroundColor = origBgRoot;
+        if (parentBand) parentBand.style.backgroundColor = parentOrigBg;
+      }, delay);
+    } else {
+      // If no anchor, just restore background after delay
+      setTimeout(function(){
+        root.style.backgroundColor = origBgRoot;
+        if (parentBand) parentBand.style.backgroundColor = parentOrigBg;
+      }, delay);
+    }
+  } catch (e) {
+    console && console.warn && console.warn('translate delay script warning:', e);
+  }
+});
+</script>
+<!-- END: translate-delay-random -->
 
 </body></html>
