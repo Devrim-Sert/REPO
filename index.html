@@ -186,6 +186,9 @@ function onSubmit(token) {
 
 
 
+
+
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
 (function(){
@@ -208,50 +211,67 @@ function onSubmit(token) {
     return 'ok';
   }
 
-  function showBanner(status, form){
+  function ensureBanner(form){
     var existing = document.getElementById('so-error-banner');
-    if (!existing){
-      var b = document.createElement('div');
-      b.id = 'so-error-banner';
-      b.style.display = 'none';
-      b.innerHTML = ''
-        + '<div class="bg-orange-500 rounded-t-lg"></div>'
-        + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
-        + '  <p class="font-bold text-red-600">Oops</p>'
-        + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
-        + '</div>';
-      var targetForm = form || getForm();
-      if (targetForm && targetForm.parentNode) targetForm.parentNode.insertBefore(b, targetForm);
-      existing = b;
-    }
+    if (existing) return existing;
+    var b = document.createElement('div');
+    b.id = 'so-error-banner';
+    b.style.display = 'none';
+    b.innerHTML = ''
+      + '<div class="bg-orange-500 rounded-t-lg"></div>'
+      + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
+      + '  <p class="font-bold text-red-600">Oops</p>'
+      + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
+      + '</div>';
+    var targetForm = form || getForm();
+    if (targetForm && targetForm.parentNode) targetForm.parentNode.insertBefore(b, targetForm);
+    return b;
+  }
+  function showBanner(status, form){
+    var b = ensureBanner(form);
     var msg = '';
-    if (status === 'empty') {
-      msg = 'Boş alan bırakmamalısın.';
-    } else if (status === 'wrong') {
-      msg = 'Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.';
-    }
+    if (status === 'empty') msg = 'Boş alan bırakmamalısın.';
+    else if (status === 'wrong') msg = 'Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.';
+
     var txt = document.getElementById('so-error-text');
     if (msg) {
       if (txt) txt.textContent = msg;
-      existing.style.display = '';
+      b.style.display = '';
     } else {
-      if (existing) existing.style.display = 'none';
+      b.style.display = 'none';
     }
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // 1) Translate pieces delayed EXACT 0.5s, while background stays
-    var delay = 500;
+    // ---- 1) Translate bits: delay EXACTLY 700ms, background stays ----
+    var delay = 700;
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
     if (root){
-      // Hide the nowrap span (logo + "Çeviri")
-      var nowrapSpan = root.querySelector('span[style*="white-space:nowrap"]');
-      if (nowrapSpan){
-        // Keep layout; just hide content
-        nowrapSpan.style.visibility = 'hidden';
-        setTimeout(function(){ nowrapSpan.style.visibility = 'visible'; }, delay);
+      // (a) Delay the "Powered by Google Translate" line (logo + "Çeviri" + rest + blue i)
+      // We group the anchor to translate.google and its following siblings into a wrapper to hide together.
+      var anchor = root.querySelector('a[href*="translate.google"]');
+      if (anchor && anchor.parentNode){
+        var wrapper = document.createElement('span');
+        wrapper.id = 'gt-powered-delay';
+        wrapper.style.visibility = 'hidden';
+        anchor.parentNode.insertBefore(wrapper, anchor);
+        wrapper.appendChild(anchor);
+        // Move following inline siblings (text/icons) into the wrapper until a block boundary (DIV/BR/SELECT)
+        var stopTags = { 'DIV':1, 'BR':1, 'SELECT':1 };
+        while (wrapper.nextSibling && !(wrapper.nextSibling.nodeType===1 && stopTags[wrapper.nextSibling.tagName])) {
+          wrapper.appendChild(wrapper.nextSibling);
+        }
+        setTimeout(function(){ wrapper.style.visibility = 'visible'; }, delay);
+      } else {
+        // Fallback: hide the nowrap span if present
+        var nowrapSpan = root.querySelector('span[style*="white-space:nowrap"]');
+        if (nowrapSpan){
+          nowrapSpan.style.visibility = 'hidden';
+          setTimeout(function(){ nowrapSpan.style.visibility = 'visible'; }, delay);
+        }
       }
-      // Hide the "Dili Seçiniz" select content but keep its slot
+
+      // (b) Delay the "Dili Seçiniz" select content by the same delay (keep background/slot)
       var selectEl = root.querySelector('select');
       if (selectEl){
         selectEl.style.opacity = '0';
@@ -262,14 +282,13 @@ function onSubmit(token) {
     var form = getForm();
     if (!form) return;
 
-    // 2) Always POST; just record status BEFORE submit
+    // ---- 2) Always POST; store status BEFORE submit ----
     form.addEventListener('submit', function(){
       var s = validate(form);
       try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
-      // do NOT prevent default -> browser will POST
+      // do NOT preventDefault -> browser will POST to same site
     }, true);
 
-    // Also catch button click (in case some handlers bypass submit)
     var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
     if (submitBtn){
       submitBtn.addEventListener('click', function(){
@@ -278,17 +297,15 @@ function onSubmit(token) {
       }, true);
     }
 
-    // 3) On load (after POST), show banner based on previous status
+    // ---- 3) After POST: show banner, inputs ALWAYS empty ----
     var status = sessionStorage.getItem(STATUS_KEY);
     if (status){
       sessionStorage.removeItem(STATUS_KEY);
       showBanner(status, form);
     }
-
-    // 4) Ensure inputs are ALWAYS empty after load (no repopulate)
     var ip = getInputs(form);
-    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete', 'off'); }
-    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete', 'new-password'); }
+    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete', 'off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
+    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete', 'new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
     form.setAttribute('autocomplete', 'off');
   });
 })();
