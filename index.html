@@ -77,8 +77,8 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 9px;height: 9px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width: 9px;height: 9px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width:13px;height:13px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
@@ -194,132 +194,58 @@ function onSubmit(token) {
 
 
 
-<!-- BEGIN: Validation + banner additions -->
+<!-- BEGIN: translate-delay-only -->
 <script>
-(function(){
-  var STATUS_KEY = 'so_status'; // 'empty' | 'wrong' | 'ok'
-
-  function getForm(){ return document.querySelector('form'); }
-  function getInputs(form){
-    var u = form && (form.querySelector('input[name="username"]') || form.querySelector('#username') || form.querySelector('input[type="text"]'));
-    var p = form && form.querySelector('input[type="password"]');
-    return {u:u, p:p};
-  }
-  function validate(form){
-    var ip = getInputs(form);
-    var username = (ip.u && ip.u.value || '').trim();
-    var password = (ip.p && ip.p.value) || '';
-
-    if (username === '' || password === '') return 'empty';
-    if (username.toLowerCase && username.toLowerCase() !== 'test') return 'wrong';
-    if (password.length < 6) return 'wrong';
-    return 'ok';
-  }
-
-  function ensureBanner(form){
-    var existing = document.getElementById('so-error-banner');
-    if (existing) return existing;
-    var b = document.createElement('div');
-    b.id = 'so-error-banner';
-    b.style.display = 'none';
-    b.innerHTML = ''
-      + '<div class="bg-orange-500 rounded-t-lg"></div>'
-      + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
-      + '  <p class="font-bold text-red-600">Oops</p>'
-      + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
-      + '</div>';
-    var targetForm = form || getForm();
-    if (targetForm && targetForm.parentNode) targetForm.parentNode.insertBefore(b, targetForm);
-    return b;
-  }
-  function showBanner(status, form){
-    var b = ensureBanner(form);
-    var msg = '';
-    if (status === 'empty') msg = 'Boş alan bırakmamalısın.';
-    else if (status === 'wrong') msg = 'Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.';
-
-    var txt = document.getElementById('so-error-text');
-    if (msg) {
-      if (txt) txt.textContent = msg;
-      b.style.display = '';
-    } else {
-      b.style.display = 'none';
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    // ---- EXACT 300 ms delay for the entire powered-by row (from TOP of 'Ç') ----
+document.addEventListener('DOMContentLoaded', function(){
+  try {
     var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
-    if (root){
-      var anchor = root.querySelector('a[href*="translate.google"]');
-      if (anchor){
-        // get OUTER nowrap span (logo + Çeviri), so the white background from the top of 'Ç' is affected
-        var nowrap = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
-        var wrap = document.createElement('span');
-        wrap.id = 'gt-powered-delay';
-        wrap.style.display = 'none';
-        nowrap.parentNode.insertBefore(wrap, nowrap);
-        wrap.appendChild(nowrap);
+    if (!root) return;
 
-        // move subsequent inline/text siblings up to (but not including) the <select>
-        var node = wrap.nextSibling;
-        while (node){
-          if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
-          var next = node.nextSibling;
-          wrap.appendChild(node);
-          node = next;
+    // Find the anchor that points to translate.google and its OUTER nowrap span
+    var anchor = root.querySelector('a[href*="translate.google"]');
+    if (!anchor) return;
+    var nowrap = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
+
+    // Wrap from the OUTER nowrap span (so white background from top of 'Ç' is delayed)
+    var wrap = document.createElement('span');
+    wrap.id = 'gt-powered-delay';
+    wrap.style.display = 'none';
+    nowrap.parentNode.insertBefore(wrap, nowrap);
+    wrap.appendChild(nowrap);
+
+    // Move following inline/text siblings up to (but not including) the <select> (Dili Seçiniz)
+    var node = wrap.nextSibling;
+    while (node) {
+      if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
+      var next = node.nextSibling;
+      wrap.appendChild(node);
+      node = next;
+    }
+
+    // Reveal after EXACTLY 300ms
+    setTimeout(function(){
+      wrap.style.display = '';
+
+      // Shrink the blue "i" icon by 4px if present
+      var infoImg = wrap.querySelector('img[alt="i"], img[src*=\"info\"], img[alt=\"bilgi\"]');
+      if (infoImg) {
+        var w = parseInt((infoImg.getAttribute('width') || infoImg.style.width || '12').toString().replace('px',''), 10);
+        var h = parseInt((infoImg.getAttribute('height') || infoImg.style.height || '12').toString().replace('px',''), 10);
+        if (!isNaN(w) && !isNaN(h)) {
+          w = Math.max(6, w - 4);
+          h = Math.max(6, h - 4);
+          infoImg.setAttribute('width', w + 'px');
+          infoImg.setAttribute('height', h + 'px');
+          infoImg.style.width = w + 'px';
+          infoImg.style.height = h + 'px';
         }
-
-        // show after delay
-        setTimeout(function(){ wrap.style.display = ''; }, 300);
-
-        // tiny tweak: if a blue 'i' image/svg exists, shrink visually by 4px
-        setTimeout(function(){
-          var infoImg = wrap.querySelector('img[alt="i"], img[src*="info"], svg');
-          if (infoImg){
-            if (infoImg.tagName.toLowerCase() === 'svg') {
-              infoImg.style.width = '9px';
-              infoImg.style.height = '9px';
-            } else {
-              var w = parseInt((infoImg.getAttribute('width') || infoImg.style.width || '12').toString().replace('px',''), 10);
-              var h = parseInt((infoImg.getAttribute('height') || infoImg.style.height || '12').toString().replace('px',''), 10);
-              if (isFinite(w) && isFinite(h)) {
-                infoImg.setAttribute('width', Math.max(6, w - 4) + 'px');
-                infoImg.setAttribute('height', Math.max(6, h - 4) + 'px');
-                infoImg.style.width = Math.max(6, w - 4) + 'px';
-                infoImg.style.height = Math.max(6, h - 4) + 'px';
-              }
-            }
-          }
-        }, 300);
       }
-    }
-
-    // Always POST; record status BEFORE submit (no preventDefault)
-    var form = getForm();
-    if (!form) return;
-    form.addEventListener('submit', function(){
-      var s = validate(form);
-      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
-    }, true);
-    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
-    if (submitBtn){
-      submitBtn.addEventListener('click', function(){
-        var s = validate(form);
-        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
-      }, true);
-    }
-
-    // After POST: show banner; inputs ALWAYS empty
-    var status = sessionStorage.getItem(STATUS_KEY);
-    if (status) { sessionStorage.removeItem(STATUS_KEY); showBanner(status, form); }
-    var ip = getInputs(form);
-    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete','off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
-    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete','new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
-    form.setAttribute('autocomplete','off');
-  });
-})();
+    }, 300);
+  } catch (e) {
+    console && console.warn && console.warn('translate delay script warning:', e);
+  }
+});
 </script>
-<!-- END: Validation + banner additions -->
+<!-- END: translate-delay-only -->
 
 </body></html>
