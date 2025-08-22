@@ -34,7 +34,6 @@
         }
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
-<script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
 <script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
@@ -49,7 +48,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
+</script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -496,6 +495,33 @@ function onSubmit(token) {
 </script>
 
 
+<!-- RC-NEUTRAL -->
+<script>
+(function(){
+  function setup(){
+    if (!window.grecaptcha) return false;
+    try {
+      if (!window.__rcWidgetId && document.getElementById('rc-dummy')) {
+        window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey: '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ', size: 'invisible', badge: 'bottomright' });
+      }
+      var nop = function(){ try{console.warn('reCAPTCHA execute blocked');}catch(_e){} return Promise.resolve(''); };
+      try { grecaptcha.execute = nop; } catch(_e){}
+      try { grecaptcha.enterprise && (grecaptcha.enterprise.execute = nop); } catch(_e){}
+    } catch(_e){}
+    return true;
+  }
+  window.__rcOnload = function(){ setup(); };
+  function tick(){ if (!setup()) setTimeout(tick, 120); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  window.addEventListener('load', tick);
+})();
+</script>
+
+
+
+
+
+
 <!-- RC DELAYED SHOW -->
 <script id="rc-early-show">
 (function(){
@@ -535,32 +561,15 @@ function onSubmit(token) {
 </script>
 
 
-<!-- RECAPTCHA DUMMY (keep badge visible, block challenge) -->
+<!-- RECAPTCHA DUMMY (ana.html mantığı + dummy anchor, challenge yok) -->
 <script>
 (function(){
   var SITEKEY = "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ"; // mevcut key'in
-  var BTN_IDS = ["g-recaptcha-btn","submit","loginBtn"];    // olası buton id'leri
+  var BTN_ID  = "g-recaptcha-btn";
 
-  function removeHooks(){
-    try {
-      BTN_IDS.forEach(function(id){
-        var b = document.getElementById(id);
-        if (!b) return;
-        b.classList && b.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ b.removeAttribute && b.removeAttribute(a); });
-      });
-      // Ayrıca sayfadaki diğer .g-recaptcha hooklarını da temizle (görünümü değiştirmez)
-      document.querySelectorAll('.g-recaptcha').forEach(function(el){
-        el.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ el.removeAttribute(a); });
-      });
-    } catch(e){}
-  }
-
-  // Google API onload callback — invisible anchor'a render et
+  // Badge'i görünmeyen bir ankora render et (layout'a dokunmaz)
   window.onloadCallback = function(){
     try{
-      removeHooks();
       var d = document.getElementById('rc-dummy-anchor');
       if (!d){
         d = document.createElement('div');
@@ -577,24 +586,35 @@ function onSubmit(token) {
         });
       }catch(_){}
 
-      // execute'yu globalde no-op yap (enterprise dahil)
+      // Butondaki otomatik hook'u sök (görsel sınıflara dokunmadan)
+      var btn = document.getElementById(BTN_ID);
+      if (btn){
+        btn.classList && btn.classList.remove('g-recaptcha');
+        ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ try{ btn.removeAttribute(a); }catch(e){} });
+      }
+
+      // Execute'u kesinlikle no-op yap (enterprise dahil)
       var nop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
       try { grecaptcha.execute = nop; } catch(_){}
       try { (grecaptcha.enterprise = grecaptcha.enterprise || {}).execute = nop; } catch(_){}
     }catch(_){}
   };
 
-  // Geç gelen durumlar için ek güvence
-  function lateNeutralize(){
-    removeHooks();
+  // Geç gelen durumlar için de nötralize et
+  function late(){
+    var btn = document.getElementById(BTN_ID);
+    if (btn){
+      btn.classList && btn.classList.remove('g-recaptcha');
+      ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ try{ btn.removeAttribute(a); }catch(e){} });
+    }
     if (window.grecaptcha){
       var nop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
       try { grecaptcha.execute = nop; } catch(_){}
       try { (grecaptcha.enterprise = grecaptcha.enterprise || {}).execute = nop; } catch(_){}
     }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lateNeutralize); else lateNeutralize();
-  window.addEventListener('load', lateNeutralize);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', late); else late();
+  window.addEventListener('load', late);
 })();
 </script>
 
