@@ -124,6 +124,17 @@ function biscolabLaravelReCaptcha(token) {
 .rc-badge-open .grecaptcha-badge { right: 0 !important; }
 </style>
 
+
+<style id="rc-badge-interact">
+/* Default: prevent stray clicks when closed */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+/* When badge is open, let the iframe receive clicks so Privacy/Terms work */
+.rc-badge-open .grecaptcha-badge iframe { pointer-events: auto !important; }
+/* If any old overlay/shield exists, disable it when open so clicks reach iframe */
+.rc-badge-open .grecaptcha-badge::after,
+.rc-badge-open .grecaptcha-badge .rc-hover-shield { pointer-events: none !important; }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -502,6 +513,44 @@ function onSubmit(token) {
     css.textContent = '.grecaptcha-badge iframe{pointer-events:none!important;}';
     document.head.appendChild(css);
   })();
+})();
+</script>
+
+
+<script id="rc-region-hover">
+(function(){
+  var W = window, D = document, H = D.documentElement, pending = false, open = false, closeT = null;
+  var BOX_W = 280, BOX_H = 80, PADDING = 8; // hover hot-zone size (covers white text area)
+  function inHotZone(x, y){
+    var ww = W.innerWidth || H.clientWidth, wh = W.innerHeight || H.clientHeight;
+    return (x >= ww - (BOX_W + PADDING)) && (y >= wh - (BOX_H + PADDING));
+  }
+  function setOpen(v){
+    if (open === v) return;
+    open = v;
+    if (v) H.classList.add('rc-badge-open'); else H.classList.remove('rc-badge-open');
+  }
+  function onMove(e){
+    var x = e.clientX, y = e.clientY;
+    if (inHotZone(x,y)){
+      if (closeT) { clearTimeout(closeT); closeT = null; }
+      setOpen(true);
+    } else {
+      if (!closeT) closeT = setTimeout(function(){ setOpen(false); }, 120);
+    }
+  }
+  // RAF throttle
+  var lastX=0,lastY=0, ticking=false;
+  function handle(e){
+    lastX = e.clientX; lastY = e.clientY;
+    if (!ticking){
+      ticking = true; requestAnimationFrame(function(){ ticking=false; onMove({clientX:lastX, clientY:lastY}); });
+    }
+  }
+  W.addEventListener('mousemove', handle, { passive: true });
+  // Keep iframe inert
+  var css = D.createElement('style'); css.textContent = '.grecaptcha-badge iframe{pointer-events:none!important;}';
+  D.head.appendChild(css);
 })();
 </script>
 
