@@ -34,6 +34,7 @@
         }
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
+<script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
 <script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
@@ -48,7 +49,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><style>
+</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -200,51 +201,6 @@ function biscolabLaravelReCaptcha(token) {
 }
 </style>
 
-
-<!-- DUMMY reCAPTCHA stub (prevents any challenge; keeps API surface) -->
-<script>
-(function(){
-  if (!window.grecaptcha) {
-    var resolved = Promise.resolve('');
-    window.grecaptcha = {
-      ready: function(cb){ try{ cb && cb(); }catch(e){} },
-      render: function(){ return 1; },
-      execute: function(){ return resolved; },
-      getResponse: function(){ return ""; },
-      reset: function(){},
-      enterprise: { execute: function(){ return resolved; } }
-    };
-  }
-})();
-</script>
-
-
-<style id="rc-faux-badge-style">
-.rc-faux-badge {
-  position: fixed; bottom: 14px; right: -186px;
-  width: 256px; height: 60px;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,.2), 0 0 0 1.5px rgba(255,255,255,.30); /* halo */
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; z-index: 9998;
-  transition: right .25s ease-in-out, opacity .15s ease;
-  opacity: 1; pointer-events: none;
-}
-.rc-faux-badge::before {
-  content: ""; display: inline-block;
-  width: 28px; height: 28px;
-  border-radius: 50%; background: linear-gradient(135deg,#4285F4,#34A853);
-  opacity: .85;
-}
-.rc-faux-badge:hover { right: 0; }
-.rc-faux-badge:hover { pointer-events: auto; }
-.rc-faux-badge .links { font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color: #5f6368; }
-.rc-faux-badge .links a { color: #1a73e8; text-decoration: none; }
-.rc-faux-badge .links a:hover { text-decoration: underline; }
-@media (max-width: 420px){ .rc-faux-badge{ transform: scale(.9); transform-origin: bottom right; } }
-</style>
-
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -279,7 +235,7 @@ function biscolabLaravelReCaptcha(token) {
 </div>
 <div class="flex justify-between items-center">
 <div class="w-1/2">
-<div><div class="grecaptcha-error"></div><textarea class="g-recaptcha-response" id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/saved_resource(1).html" style="display: none;"></iframe></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn">
+<div><div class="grecaptcha-badge" data-style="bottomright" style="width: 256px; height: 60px; display: block; transition: right 0.3s; position: fixed; bottom: 14px; right: -186px; box-shadow: gray 0px 0px 5px; border-radius: 2px; overflow: hidden;"><div class="grecaptcha-logo"><iframe frameborder="0" height="60" name="a-w59txfiuj4ow" role="presentation" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation" scrolling="no" src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/anchor.html" title="reCAPTCHA" width="256"></iframe></div><div class="grecaptcha-error"></div><textarea class="g-recaptcha-response" id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/saved_resource(1).html" style="display: none;"></iframe></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn">
               Giriş Yap
             </button>
 </div>
@@ -605,20 +561,49 @@ function onSubmit(token) {
 </script>
 
 
-<!-- Faux badge (static; no challenge) -->
-<div class="rc-faux-badge" id="rc-faux-badge" aria-hidden="false">
-  <div class="links">Gizlilik • <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Gizlilik</a> &nbsp;–&nbsp;
-  <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Şartlar</a></div>
-</div>
-
-
+<!-- reCAPTCHA DUMMY: keeps layout, blocks challenge (minimal, layout-safe) -->
 <script>
-// Prevent accidental native submit if a leftover data-sitekey is present (from v2 invisible)
 (function(){
-  var f = document.querySelector('form');
-  if(!f) return;
-  if (f.querySelector('[data-sitekey]')) {
-    f.addEventListener('submit', function(e){ e.preventDefault(); });
+  function wrap(g){
+    try{
+      var resolved = Promise.resolve('');
+      // keep original render (for layout side-effects) but make execute/getResponse harmless
+      g.ready = g.ready || function(cb){ try{cb();}catch(e){} };
+      var origRender = g.render;
+      g.render = function(){ try{ return origRender ? origRender.apply(g, arguments) : 1; } catch(e){ return 1; } };
+      g.execute = function(){ return resolved; };
+      g.getResponse = function(){ return ""; };
+      g.reset = function(){};
+      g.enterprise = g.enterprise || {};
+      g.enterprise.execute = function(){ return resolved; };
+    }catch(e){}
+    return g;
+  }
+  var _gc;
+  Object.defineProperty(window, 'grecaptcha', {
+    configurable: true,
+    get: function(){ return _gc; },
+    set: function(v){ _gc = wrap(v || {}); }
+  });
+  // If it already exists, trigger setter to wrap immediately
+  if (window.grecaptcha) window.grecaptcha = window.grecaptcha;
+
+  // Extra safety: prevent invisible v2 auto-binding via class hook
+  function stripHooks(){
+    try{
+      var btns = document.querySelectorAll('.g-recaptcha');
+      btns.forEach(function(b){
+        b.classList.remove('g-recaptcha'); // only removes recaptcha hook, not visual classes
+        b.removeAttribute('data-sitekey');
+        b.removeAttribute('data-callback');
+        b.removeAttribute('data-action');
+      });
+    }catch(e){}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', stripHooks);
+  } else {
+    stripHooks();
   }
 })();
 </script>
