@@ -118,6 +118,23 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge iframe { pointer-events: none !important; }
 </style>
 
+
+<style id="rc-badge-hover-shield">
+/* Keep slide-out behavior but ensure hover sticks and clicks do nothing */
+.grecaptcha-badge { position: fixed !important; }
+.grecaptcha-badge { pointer-events: auto !important; }
+.grecaptcha-badge::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: transparent;
+  z-index: 1;           /* above iframe */
+  pointer-events: auto; /* capture hover/clicks */
+}
+/* Extra: keep iframe inert anyway (belt & suspenders) */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
