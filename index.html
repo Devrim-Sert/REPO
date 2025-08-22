@@ -98,15 +98,40 @@ html.rc-hide-badge .grecaptcha-badge{opacity:0!important;visibility:hidden!impor
 </style>
 
 <!-- RC GHOST HALO -->
+
+
+<!-- RC GHOST HALO (collapsed sliver) -->
 <style id="rc-badge-ghost-css">
 #rc-badge-ghost{
-  position:fixed;bottom:14px;right:0;width:256px;height:60px;
+  position:fixed;
+  bottom:14px;
+  right:-186px;               /* align with collapsed badge position */
+  width:256px;
+  height:60px;
   border-radius:2px;
-  box-shadow:0 0 0 1.5px rgba(255,255,255,.30),0 2px 6px rgba(0,0,0,.15);
-  opacity:.35;pointer-events:none;display:none;z-index:9998;
+  /* thin white rim only (no drop shadow) */
+  box-shadow:0 0 0 1.5px rgba(255,255,255,.30);
+  opacity:.35;
+  pointer-events:none;
+  display:none;
+  z-index:9998;
 }
-@media (max-width:420px){#rc-badge-ghost{transform:scale(.9);transform-origin:bottom right}}
+@media (max-width:420px){
+  #rc-badge-ghost{ transform:scale(.9); transform-origin:bottom right; }
+}
 </style>
+
+
+<style id="gt-blue-i-shrink-2px">
+/* Google Translate blue "i" icon: shrink ~2px */
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.goog-te-gadget .VIpgJd-ZVi9od-l4eHX-hSRGPd{
+  transform: scale(0.88) !important;   /* ~2px smaller on 14-16px base */
+  transform-origin: center center !important;
+  display: inline-block !important;
+}
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -324,15 +349,8 @@ function onSubmit(token) {
 
 <!-- RC GHOST SCHEDULER -->
 <div id="rc-badge-ghost" aria-hidden="true"></div>
-<script id="rc-badge-ghost-show">
-(function(){
-  function show(){ try{ document.getElementById('rc-badge-ghost').style.display='block'; }catch(e){} }
-  function reveal(){
-    try{ document.getElementById('rc-badge-ghost').style.display='none'; }catch(e){}
-    try{ document.documentElement.classList.remove('rc-hide-badge'); }catch(e){}
-  }
-  setTimeout(show, 300);   // 0.3s halo
-  setTimeout(reveal, 500); // 0.5s sonra gerçek badge
+X0);   // 0.3s halo
+  h0); // 0.5s sonra gerçek badge
 })();
 </script>
 
