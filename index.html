@@ -142,6 +142,14 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge:hover iframe { pointer-events: auto !important; }
 </style>
 
+
+<style id="rc-badge-delay">
+/* Hide badge until it's actually rendered; avoid early flicker */
+.grecaptcha-badge { opacity: 0; visibility: hidden; pointer-events: none !important; }
+/* When ready, restore visibility and interactions */
+.rc-badge-ready .grecaptcha-badge { opacity: 1; visibility: visible; pointer-events: auto; }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -458,5 +466,46 @@ function onSubmit(token) {
 })();
 </script>
 
+
+
+<script id="rc-badge-ready">
+(function(){
+  function markReady(){
+    var H = document.documentElement;
+    if (!H.classList.contains('rc-badge-ready')) H.classList.add('rc-badge-ready');
+  }
+  function isReady(){
+    var b = document.querySelector('.grecaptcha-badge');
+    if (!b) return false;
+    var ifr = b.querySelector('iframe');
+    if (!ifr) return false;
+    var src = (ifr.getAttribute('src') || '');
+    if (src.indexOf('/recaptcha/api2/anchor') === -1 && src.indexOf('/recaptcha/enterprise/anchor') === -1) return false;
+    return (ifr.offsetWidth > 0 && ifr.offsetHeight > 0);
+  }
+  function tick(){
+    if (isReady()) { markReady(); }
+    else { setTimeout(tick, 120); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+
+  // Chain into existing __rcOnload if present; then tick
+  try {
+    var prev = window.__rcOnload;
+    window.__rcOnload = function(){ try{ if (prev) prev(); }catch(_e){} tick(); };
+  } catch(_){}
+
+  // Observe DOM for late badge insertion
+  try {
+    var mo = new MutationObserver(function(){
+      if (isReady()) { markReady(); try{ mo.disconnect(); }catch(_e){} }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  } catch(_){}
+
+  // Ultimate fallback: show after 2.5s so it never stays hidden forever
+  setTimeout(function(){ markReady(); }, 2500);
+})();
+</script>
 
 </body></html>
