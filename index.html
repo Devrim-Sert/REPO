@@ -145,19 +145,6 @@ function biscolabLaravelReCaptcha(token) {
 
 
 <!-- RC EARLY HIDE -->
-<script id="rc-early-hide">(function(){try{document.documentElement.classList.add('rc-hide-badge');}catch(_){}})();</script>
-<style id="rc-early-hide-css">
-/* Hide any recaptcha anchor while rc-hide-badge is set */
-.rc-hide-badge .grecaptcha-badge,
-.rc-hide-badge iframe[src*="/recaptcha/api2/anchor"],
-.rc-hide-badge iframe[src*="/recaptcha/enterprise/anchor"] {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-</style>
-
-
 <style id="rc-badge-visible-css">
 /* When visible, restore interactions */
 .rc-badge-visible .grecaptcha-badge {
@@ -167,28 +154,6 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-
-
-<style id="rc-badge-ghost-css">
-/* Thin self-halo only (no inner rim, no drop shadow, no wide spread) */
-.rc-badge-ghost{
-  position: fixed;
-  bottom: 14px;
-  right: -186px;             /* closed position to match badge */
-  width: 256px;
-  height: 60px;
-  border-radius: 6px;
-  background: transparent;
-  /* Crisp thin white rim around the card */
-  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.30);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  z-index: 9998;
-  transition: opacity 120ms ease;
-}
-.rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
-</style>
 
 
 <style id="gt-blue-i-shrink">
@@ -534,29 +499,6 @@ function onSubmit(token) {
   }
   if (document.readyState === 'complete') { setTimeout(show, 1500); }
   else { window.addEventListener('load', function(){ setTimeout(show, 1500); }); }
-})();
-</script>
-
-
-<div class="rc-badge-ghost" aria-hidden="true"></div>
-
-<!-- RC DELAY: 0.3s ghost halo, 0.5s real badge -->
-<script id="rc-badge-ghost-show">
-(function(){
-  function add(cls){ try{ document.documentElement.classList.add(cls); }catch(_){ } }
-  function rm(cls){ try{ document.documentElement.classList.remove(cls); }catch(_){ } }
-  function showGhost(){ add('rc-badge-ghost-on'); }
-  function showBadge(){
-    rm('rc-badge-ghost-on');
-    rm('rc-hide-badge');
-    add('rc-badge-visible');
-  }
-  function schedule(){
-    setTimeout(showGhost, 300);  // 0.3s: show halo
-    setTimeout(showBadge, 500);  // 0.5s: reveal badge
-  }
-  if (document.readyState === 'complete') schedule();
-  else window.addEventListener('load', schedule);
 })();
 </script>
 
