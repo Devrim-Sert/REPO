@@ -169,22 +169,24 @@ function biscolabLaravelReCaptcha(token) {
 
 
 
+
 <style id="rc-badge-ghost-css">
-/* Pure soft halo for pre-badge hint (no inner rim or fill) */
+/* Thin self-halo only (no inner rim, no drop shadow, no wide spread) */
 .rc-badge-ghost{
   position: fixed;
   bottom: 14px;
-  right: -186px;               /* closed position to match badge */
+  right: -186px;             /* closed position to match badge */
   width: 256px;
   height: 60px;
+  border-radius: 6px;
   background: transparent;
-  /* Outer glow only */
-  box-shadow: 0 0 16px 8px rgba(255,255,255,0.45);
+  /* Crisp thin white rim around the card */
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.60);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   z-index: 9998;
-  transition: opacity 140ms ease;
+  transition: opacity 120ms ease;
 }
 .rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
 </style>
