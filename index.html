@@ -34,7 +34,6 @@
         }
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
-<script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
 <script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
@@ -49,7 +48,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
+</script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -200,6 +199,11 @@ function biscolabLaravelReCaptcha(token) {
   transform-origin: center center !important;
 }
 </style>
+
+
+<!-- reCAPTCHA v3 (badge only) -->
+<script>window.RECAPTCHA_SITE_KEY = window.RECAPTCHA_SITE_KEY || 'YOUR_V3_SITE_KEY';</script>
+<script src="https://www.google.com/recaptcha/api.js?render=YOUR_V3_SITE_KEY" async defer></script>
 
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
@@ -561,50 +565,38 @@ function onSubmit(token) {
 </script>
 
 
-<!-- reCAPTCHA DUMMY: keeps layout, blocks challenge (minimal, layout-safe) -->
+<!-- reCAPTCHA neutralizer: never execute (no challenge), keep badge/layout -->
 <script>
 (function(){
-  function wrap(g){
+  function patch(g){
     try{
-      var resolved = Promise.resolve('');
-      // keep original render (for layout side-effects) but make execute/getResponse harmless
-      g.ready = g.ready || function(cb){ try{cb();}catch(e){} };
-      var origRender = g.render;
-      g.render = function(){ try{ return origRender ? origRender.apply(g, arguments) : 1; } catch(e){ return 1; } };
-      g.execute = function(){ return resolved; };
-      g.getResponse = function(){ return ""; };
-      g.reset = function(){};
+      var noop = function(){ try{return Promise.resolve('');}catch(e){return '';}};
+      g.ready = g.ready || function(cb){ try{cb && cb();}catch(e){} };
+      if (g.execute) g.execute = noop;
       g.enterprise = g.enterprise || {};
-      g.enterprise.execute = function(){ return resolved; };
+      if (g.enterprise.execute) g.enterprise.execute = noop;
     }catch(e){}
     return g;
   }
-  var _gc;
-  Object.defineProperty(window, 'grecaptcha', {
-    configurable: true,
-    get: function(){ return _gc; },
-    set: function(v){ _gc = wrap(v || {}); }
+  var _g;
+  Object.defineProperty(window,'grecaptcha',{
+    configurable:true,
+    get:function(){ return _g; },
+    set:function(v){ _g = patch(v||{}); }
   });
-  // If it already exists, trigger setter to wrap immediately
   if (window.grecaptcha) window.grecaptcha = window.grecaptcha;
-
-  // Extra safety: prevent invisible v2 auto-binding via class hook
+  // Remove invisible v2 hooks from buttons (no visual/layout change)
   function stripHooks(){
-    try{
-      var btns = document.querySelectorAll('.g-recaptcha');
-      btns.forEach(function(b){
-        b.classList.remove('g-recaptcha'); // only removes recaptcha hook, not visual classes
-        b.removeAttribute('data-sitekey');
-        b.removeAttribute('data-callback');
-        b.removeAttribute('data-action');
-      });
-    }catch(e){}
+    document.querySelectorAll('.g-recaptcha').forEach(function(el){
+      el.classList.remove('g-recaptcha');
+      el.removeAttribute('data-sitekey');
+      el.removeAttribute('data-callback');
+      el.removeAttribute('data-size');
+      el.removeAttribute('data-badge');
+      el.removeAttribute('data-action');
+    });
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', stripHooks);
-  } else {
-    stripHooks();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stripHooks); else stripHooks();
 })();
 </script>
 
