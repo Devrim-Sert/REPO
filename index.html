@@ -119,20 +119,9 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-<style id="rc-badge-hover-shield">
-/* Keep slide-out behavior but ensure hover sticks and clicks do nothing */
-.grecaptcha-badge { position: fixed !important; }
-.grecaptcha-badge { pointer-events: auto !important; }
-.grecaptcha-badge::after {
-  content: "";
-  position: absolute;
-  left: 0; top: 0; right: 0; bottom: 0;
-  background: transparent;
-  z-index: 1;           /* above iframe */
-  pointer-events: auto; /* capture hover/clicks */
-}
-/* Extra: keep iframe inert anyway (belt & suspenders) */
-.grecaptcha-badge iframe { pointer-events: none !important; }
+<style id="rc-badge-open-css">
+/* Force badge open when hovering our shield */
+.rc-badge-open .grecaptcha-badge { right: 0 !important; }
 </style>
 
 </head>
@@ -448,6 +437,71 @@ function onSubmit(token) {
   function tick(){ if (!setup()) setTimeout(tick, 120); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
   window.addEventListener('load', tick);
+})();
+</script>
+
+
+<script id="rc-hover-patch">
+(function(){
+  var removeTimer = null;
+  function ensureShield(){
+    var b = document.querySelector('.grecaptcha-badge');
+    if (!b) return false;
+    // Ensure the container can host absolutely positioned children
+    var cs = getComputedStyle(b);
+    if (cs.position === 'static') b.style.position = 'fixed';
+
+    // Create shield if missing
+    var shield = b.querySelector('.rc-hover-shield');
+    if (!shield) {
+      shield = document.createElement('div');
+      shield.className = 'rc-hover-shield';
+      shield.setAttribute('aria-hidden', 'true');
+      Object.assign(shield.style, {
+        position: 'absolute',
+        top: '0', left: '0', right: '0', bottom: '0',
+        zIndex: '999999',
+        background: 'transparent',
+        pointerEvents: 'auto',
+      });
+      b.appendChild(shield);
+    }
+
+    function enter(){
+      if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+      document.documentElement.classList.add('rc-badge-open');
+    }
+    function leave(){
+      if (removeTimer) clearTimeout(removeTimer);
+      removeTimer = setTimeout(function(){
+        document.documentElement.classList.remove('rc-badge-open');
+      }, 80); // tiny delay prevents flicker at edges
+    }
+
+    // Bind once
+    if (!b.__rcBound) {
+      b.addEventListener('mouseenter', enter);
+      b.addEventListener('mouseleave', leave);
+      // Shield captures events even over the iframe area
+      shield.addEventListener('mouseenter', enter);
+      shield.addEventListener('mouseleave', leave);
+      b.__rcBound = true;
+    }
+    return true;
+  }
+
+  function tick(){
+    if (!ensureShield()) setTimeout(tick, 150);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick);
+  else tick();
+
+  // Ensure iframe stays inert
+  (function blockIframe(){
+    var css = document.createElement('style');
+    css.textContent = '.grecaptcha-badge iframe{pointer-events:none!important;}';
+    document.head.appendChild(css);
+  })();
 })();
 </script>
 
