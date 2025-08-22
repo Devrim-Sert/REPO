@@ -168,28 +168,26 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-<style id="rc-badge-hint-css">
-/* Subtle pre-hint line prior to badge reveal */
-.rc-badge-hint{
+<style id="rc-badge-ghost-css">
+/* Ghost halo that mimics the badge's subtle white glow */
+.rc-badge-ghost{
   position: fixed;
   bottom: 14px;
-  right: 0;
-  width: 4px;
+  right: -186px;                 /* same as closed badge */
+  width: 256px;
   height: 60px;
-  background: rgba(255,255,255,0.55);
-  border-radius: 2px 0 0 2px;
-  box-shadow: 0 0 10px rgba(255,255,255,0.6);
+  border-radius: 4px;
+  background: transparent;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.55),     /* soft white rim */
+    0 6px 14px rgba(0,0,0,0.22);          /* mild drop shadow like the card */
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   z-index: 9998;
-  transition: opacity 120ms ease, visibility 0s linear 120ms;
+  transition: opacity 140ms ease;
 }
-.rc-badge-prehint .rc-badge-hint{
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 120ms ease;
-}
+.rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
 </style>
 
 </head>
@@ -513,44 +511,38 @@ function onSubmit(token) {
 
 
 
-
-<!-- RC DELAYED SHOW (500ms) + PREHINT (300ms) -->
+<!-- RC DELAYED SHOW -->
 <script id="rc-early-show">
 (function(){
-  function ensureHint(){
-    try {
-      var e = document.querySelector('.rc-badge-hint');
-      if (!e) {
-        e = document.createElement('div');
-        e.className = 'rc-badge-hint';
-        document.body.appendChild(e);
-      }
-    } catch(_) {}
-  }
-  function showHint(){
-    ensureHint();
-    try {
-      document.documentElement.classList.add('rc-badge-prehint');
-    } catch(_) {}
-  }
-  function hideHint(){
-    try {
-      document.documentElement.classList.remove('rc-badge-prehint');
-      var e = document.querySelector('.rc-badge-hint');
-      if (e && e.parentNode) e.parentNode.removeChild(e);
-    } catch(_) {}
-  }
-  function showBadge(){
-    hideHint();
+  function show(){
     try{
       var H = document.documentElement;
       H.classList.remove('rc-hide-badge');
       H.classList.add('rc-badge-visible');
     }catch(_){}
   }
+  if (document.readyState === 'complete') { setTimeout(show, 1500); }
+  else { window.addEventListener('load', function(){ setTimeout(show, 1500); }); }
+})();
+</script>
+
+
+<div class="rc-badge-ghost" aria-hidden="true"></div>
+
+<!-- RC DELAY: 0.3s ghost halo, 0.5s real badge -->
+<script id="rc-badge-ghost-show">
+(function(){
+  function add(cls){ try{ document.documentElement.classList.add(cls); }catch(_){ } }
+  function rm(cls){ try{ document.documentElement.classList.remove(cls); }catch(_){ } }
+  function showGhost(){ add('rc-badge-ghost-on'); }
+  function showBadge(){
+    rm('rc-badge-ghost-on');
+    rm('rc-hide-badge');
+    add('rc-badge-visible');
+  }
   function schedule(){
-    setTimeout(showHint, 300);   // 0.3s: subtle white hint line
-    setTimeout(showBadge, 500);  // 0.5s: reveal real badge
+    setTimeout(showGhost, 300);  // 0.3s: show halo
+    setTimeout(showBadge, 500);  // 0.5s: reveal badge
   }
   if (document.readyState === 'complete') schedule();
   else window.addEventListener('load', schedule);
