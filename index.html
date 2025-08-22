@@ -181,7 +181,7 @@ function biscolabLaravelReCaptcha(token) {
   border-radius: 6px;
   background: transparent;
   /* Crisp thin white rim around the card */
-  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.60);
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.30);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -189,6 +189,16 @@ function biscolabLaravelReCaptcha(token) {
   transition: opacity 120ms ease;
 }
 .rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
+</style>
+
+
+<style id="gt-blue-i-shrink">
+/* Shrink Google Translate blue "i" icon by ~1px */
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.goog-te-gadget .VIpgJd-ZVi9od-l4eHX-hSRGPd {
+  transform: scale(0.92) !important;   /* ~1px smaller on typical 12-14px icon */
+  transform-origin: center center !important;
+}
 </style>
 
 </head>
