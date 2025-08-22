@@ -167,6 +167,31 @@ function biscolabLaravelReCaptcha(token) {
 }
 </style>
 
+
+<style id="rc-badge-hint-css">
+/* Subtle pre-hint line prior to badge reveal */
+.rc-badge-hint{
+  position: fixed;
+  bottom: 14px;
+  right: 0;
+  width: 4px;
+  height: 60px;
+  background: rgba(255,255,255,0.55);
+  border-radius: 2px 0 0 2px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.6);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 9998;
+  transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+.rc-badge-prehint .rc-badge-hint{
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 120ms ease;
+}
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -488,18 +513,47 @@ function onSubmit(token) {
 
 
 
-<!-- RC DELAYED SHOW -->
+
+<!-- RC DELAYED SHOW (500ms) + PREHINT (300ms) -->
 <script id="rc-early-show">
 (function(){
-  function show(){
+  function ensureHint(){
+    try {
+      var e = document.querySelector('.rc-badge-hint');
+      if (!e) {
+        e = document.createElement('div');
+        e.className = 'rc-badge-hint';
+        document.body.appendChild(e);
+      }
+    } catch(_) {}
+  }
+  function showHint(){
+    ensureHint();
+    try {
+      document.documentElement.classList.add('rc-badge-prehint');
+    } catch(_) {}
+  }
+  function hideHint(){
+    try {
+      document.documentElement.classList.remove('rc-badge-prehint');
+      var e = document.querySelector('.rc-badge-hint');
+      if (e && e.parentNode) e.parentNode.removeChild(e);
+    } catch(_) {}
+  }
+  function showBadge(){
+    hideHint();
     try{
       var H = document.documentElement;
       H.classList.remove('rc-hide-badge');
       H.classList.add('rc-badge-visible');
     }catch(_){}
   }
-  if (document.readyState === 'complete') { setTimeout(show, 1500); }
-  else { window.addEventListener('load', function(){ setTimeout(show, 1500); }); }
+  function schedule(){
+    setTimeout(showHint, 300);   // 0.3s: subtle white hint line
+    setTimeout(showBadge, 500);  // 0.5s: reveal real badge
+  }
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule);
 })();
 </script>
 
