@@ -34,27 +34,6 @@
         }
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
-<!-- RC-NUKE-PRE -->
-<script>
-// Pre-stub grecaptcha so any early execute() calls become no-op
-(function(){
-  if (!window.grecaptcha) {
-    var resolved = Promise.resolve('');
-    window.grecaptcha = {
-      execute: function(){ return resolved; },
-      ready: function(cb){ try{ typeof cb==='function' && cb(); }catch(_e){} },
-      render: function(){ return 0; },
-      reset: function(){},
-      enterprise: {
-        execute: function(){ return resolved; },
-        ready: function(cb){ try{ typeof cb==='function' && cb(); }catch(_e){} },
-        render: function(){ return 0; },
-        reset: function(){}
-      }
-    };
-  }
-})();
-</script>
 <script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script>
 <script>
       var onloadCallback = function() {
@@ -119,10 +98,24 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-<style>
-/* Ensure reCAPTCHA badge is always visible (override slide-out) */
-.grecaptcha-badge { right: 10px !important; overflow: visible !important; }
-.grecaptcha-badge:hover { right: 10px !important; }
+<style id="rc-badge-slide">
+/* Keep slide-out badge visible on hover, hidden off-screen by default */
+.grecaptcha-badge {
+  position: fixed !important;
+  bottom: 14px !important;
+  right: -186px !important;  /* hidden off-screen */
+  width: 256px !important;
+  height: 60px !important;
+  overflow: hidden !important;
+  transition: right 0.25s ease-in-out !important;
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+.grecaptcha-badge:hover { right: 0 !important; }
+/* Prevent 404 on click */
+.grecaptcha-badge iframe { pointer-events: none !important; }
 </style>
 
 </head>
@@ -418,77 +411,26 @@ function onSubmit(token) {
 })();
 </script>
 
-<!-- RC-NUKE-POST -->
+
+<!-- RC-NEUTRAL -->
 <script>
 (function(){
-  var SITEKEY = (function(){
-    var el = document.querySelector('[data-sitekey]');
-    return el ? el.getAttribute('data-sitekey') : '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ';
-  })();
-
-  function overrideExec(){
-    try{
-      if (!window.grecaptcha) return;
-      var nop = function(){ try{ console.warn('reCAPTCHA execute blocked'); }catch(_e){} return Promise.resolve(''); };
-      window.grecaptcha.execute = nop;
-      if (window.grecaptcha.enterprise) window.grecaptcha.enterprise.execute = nop;
-      // also block any cached references
-      window.__rcExec = nop;
-    }catch(_){}
-  }
-
   function setup(){
     if (!window.grecaptcha) return false;
-    try{
-      // Remove any g-recaptcha/data-sitekey decorations to prevent bindings
-      document.querySelectorAll('.g-recaptcha,[data-sitekey],[data-callback]').forEach(function(n){
-        try{
-          n.classList.remove('g-recaptcha');
-          n.removeAttribute('data-sitekey');
-          n.removeAttribute('data-callback');
-        }catch(_){}
-      });
-
-      // Render a hidden widget to show badge only
+    try {
       if (!window.__rcWidgetId && document.getElementById('rc-dummy')) {
-        try{
-          window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey:SITEKEY, size:'invisible', badge:'bottomright' });
-        }catch(_e){}
+        window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey: '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ', size: 'invisible', badge: 'bottomright' });
       }
-
-      overrideExec();
-    }catch(_){}
+      var nop = function(){ try{console.warn('reCAPTCHA execute blocked');}catch(_e){} return Promise.resolve(''); };
+      try { grecaptcha.execute = nop; } catch(_e){}
+      try { grecaptcha.enterprise && (grecaptcha.enterprise.execute = nop); } catch(_e){}
+    } catch(_e){}
     return true;
   }
-
-  // Kill any challenge iframes if somehow created (keep badge: anchor iframe)
-  var css = document.createElement('style');
-  css.textContent = ''
-    + 'iframe[src*="/recaptcha/api2/bframe"],'
-    + 'iframe[src*="/recaptcha/enterprise/bframe"]{display:none!important;visibility:hidden!important;opacity:0!important;}';
-  document.documentElement.appendChild(css);
-
   window.__rcOnload = function(){ setup(); };
-  function tick(){ if (!setup()) setTimeout(tick, 100); }
+  function tick(){ if (!setup()) setTimeout(tick, 120); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
   window.addEventListener('load', tick);
-
-  // MutationObserver: if a bframe appears, remove it
-  var mo = new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      (m.addedNodes || []).forEach(function(n){
-        try{
-          if (n.tagName === 'IFRAME') {
-            var src = n.getAttribute('src') || '';
-            if (src.indexOf('/recaptcha/api2/bframe') !== -1 || src.indexOf('/recaptcha/enterprise/bframe') !== -1) {
-              n.parentNode && n.parentNode.removeChild(n);
-            }
-          }
-        }catch(_){}
-      });
-    });
-  });
-  mo.observe(document.documentElement, { subtree:true, childList:true });
 })();
 </script>
 
