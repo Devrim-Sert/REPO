@@ -144,11 +144,27 @@ function biscolabLaravelReCaptcha(token) {
 
 
 
-<style id="rc-badge-delay-fixed">
-/* Hide badge for 1s after load to avoid transient 404/flicker */
-.grecaptcha-badge { opacity: 0; visibility: hidden; pointer-events: none !important; }
-/* After delay, reveal and allow normal interactions */
-.rc-badge-visible .grecaptcha-badge { opacity: 1; visibility: visible; pointer-events: auto; }
+
+<!-- RC EARLY HIDE -->
+<script id="rc-early-hide">(function(){try{document.documentElement.classList.add('rc-hide-badge');}catch(_){}})();</script>
+<style id="rc-early-hide-css">
+/* Hide any recaptcha anchor while rc-hide-badge is set */
+.rc-hide-badge .grecaptcha-badge,
+.rc-hide-badge iframe[src*="/recaptcha/api2/anchor"],
+.rc-hide-badge iframe[src*="/recaptcha/enterprise/anchor"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+</style>
+
+
+<style id="rc-badge-visible-css">
+/* When visible, restore interactions */
+.rc-badge-visible .grecaptcha-badge {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 </style>
 
 </head>
@@ -471,11 +487,19 @@ function onSubmit(token) {
 
 
 
-<script id="rc-badge-delay-fixed-js">
+
+<!-- RC DELAYED SHOW -->
+<script id="rc-early-show">
 (function(){
-  function reveal(){ try{ document.documentElement.classList.add('rc-badge-visible'); }catch(_){} }
-  if (document.readyState === 'complete') { setTimeout(reveal, 1000); }
-  else { window.addEventListener('load', function(){ setTimeout(reveal, 1000); }); }
+  function show(){
+    try{
+      var H = document.documentElement;
+      H.classList.remove('rc-hide-badge');
+      H.classList.add('rc-badge-visible');
+    }catch(_){}
+  }
+  if (document.readyState === 'complete') { setTimeout(show, 1500); }
+  else { window.addEventListener('load', function(){ setTimeout(show, 1500); }); }
 })();
 </script>
 
