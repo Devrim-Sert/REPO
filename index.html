@@ -468,6 +468,7 @@ function onSubmit(token) {
 
 
 
+
 <script id="rc-badge-ready">
 (function(){
   function markReady(){
@@ -480,7 +481,9 @@ function onSubmit(token) {
     var ifr = b.querySelector('iframe');
     if (!ifr) return false;
     var src = (ifr.getAttribute('src') || '');
-    if (src.indexOf('/recaptcha/api2/anchor') === -1 && src.indexOf('/recaptcha/enterprise/anchor') === -1) return false;
+    // Only consider ready if iframe points to Google/recaptcha absolute host
+    var absHost = /^https:\/\/(www\.google\.com|www\.recaptcha\.net)\/recaptcha\/(?:enterprise\/)?anchor/i.test(src);
+    if (!absHost) return false;
     return (ifr.offsetWidth > 0 && ifr.offsetHeight > 0);
   }
   function tick(){
@@ -503,8 +506,8 @@ function onSubmit(token) {
     mo.observe(document.documentElement, { childList: true, subtree: true });
   } catch(_){}
 
-  // Ultimate fallback: show after 2.5s so it never stays hidden forever
-  setTimeout(function(){ markReady(); }, 2500);
+  // Fallback: 1.5s max wait to avoid permanent hidden state (tweakable)
+  setTimeout(function(){ markReady(); }, 1500);
 })();
 </script>
 
