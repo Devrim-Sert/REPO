@@ -186,6 +186,34 @@
 
 
 <script src="https://www.google.com/recaptcha/api.js?render=6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" async defer></script>
+
+<style id="rc-v2-scrub">
+/* Kill any leftover v2 form elements that may affect layout */
+.g-recaptcha,
+.g-recaptcha-response,
+.grecaptcha-error,
+.grecaptcha-logo,
+div[style*="recaptcha"],           /* inline injected wrappers */
+iframe[src*="recaptcha"],
+textarea.g-recaptcha-response {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+}
+</style>
+
+
+<style id="submit-spacing-guard">
+/* Guard: keep consistent vertical rhythm regardless of removed recaptcha nodes */
+form button[type="submit"]{
+  margin-top: 12px;
+}
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
