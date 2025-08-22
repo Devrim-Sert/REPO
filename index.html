@@ -112,6 +112,12 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
+
+<style>
+/* Disable clicks on reCAPTCHA badge to prevent accidental 404s */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
