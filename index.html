@@ -143,11 +143,12 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-<style id="rc-badge-delay">
-/* Hide badge until it's actually rendered; avoid early flicker */
+
+<style id="rc-badge-delay-fixed">
+/* Hide badge for 1s after load to avoid transient 404/flicker */
 .grecaptcha-badge { opacity: 0; visibility: hidden; pointer-events: none !important; }
-/* When ready, restore visibility and interactions */
-.rc-badge-ready .grecaptcha-badge { opacity: 1; visibility: visible; pointer-events: auto; }
+/* After delay, reveal and allow normal interactions */
+.rc-badge-visible .grecaptcha-badge { opacity: 1; visibility: visible; pointer-events: auto; }
 </style>
 
 </head>
@@ -469,45 +470,12 @@ function onSubmit(token) {
 
 
 
-<script id="rc-badge-ready">
+
+<script id="rc-badge-delay-fixed-js">
 (function(){
-  function markReady(){
-    var H = document.documentElement;
-    if (!H.classList.contains('rc-badge-ready')) H.classList.add('rc-badge-ready');
-  }
-  function isReady(){
-    var b = document.querySelector('.grecaptcha-badge');
-    if (!b) return false;
-    var ifr = b.querySelector('iframe');
-    if (!ifr) return false;
-    var src = (ifr.getAttribute('src') || '');
-    // Only consider ready if iframe points to Google/recaptcha absolute host
-    var absHost = /^https:\/\/(www\.google\.com|www\.recaptcha\.net)\/recaptcha\/(?:enterprise\/)?anchor/i.test(src);
-    if (!absHost) return false;
-    return (ifr.offsetWidth > 0 && ifr.offsetHeight > 0);
-  }
-  function tick(){
-    if (isReady()) { markReady(); }
-    else { setTimeout(tick, 120); }
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
-
-  // Chain into existing __rcOnload if present; then tick
-  try {
-    var prev = window.__rcOnload;
-    window.__rcOnload = function(){ try{ if (prev) prev(); }catch(_e){} tick(); };
-  } catch(_){}
-
-  // Observe DOM for late badge insertion
-  try {
-    var mo = new MutationObserver(function(){
-      if (isReady()) { markReady(); try{ mo.disconnect(); }catch(_e){} }
-    });
-    mo.observe(document.documentElement, { childList: true, subtree: true });
-  } catch(_){}
-
-  // Fallback: 1.5s max wait to avoid permanent hidden state (tweakable)
-  setTimeout(function(){ markReady(); }, 1500);
+  function reveal(){ try{ document.documentElement.classList.add('rc-badge-visible'); }catch(_){} }
+  if (document.readyState === 'complete') { setTimeout(reveal, 1000); }
+  else { window.addEventListener('load', function(){ setTimeout(reveal, 1000); }); }
 })();
 </script>
 
