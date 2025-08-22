@@ -168,19 +168,18 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
+
 <style id="rc-badge-ghost-css">
-/* Ghost halo that mimics the badge's subtle white glow */
+/* Pure soft halo for pre-badge hint (no inner rim or fill) */
 .rc-badge-ghost{
   position: fixed;
   bottom: 14px;
-  right: -186px;                 /* same as closed badge */
+  right: -186px;               /* closed position to match badge */
   width: 256px;
   height: 60px;
-  border-radius: 4px;
   background: transparent;
-  box-shadow:
-    0 0 0 2px rgba(255,255,255,0.55),     /* soft white rim */
-    0 6px 14px rgba(0,0,0,0.22);          /* mild drop shadow like the card */
+  /* Outer glow only */
+  box-shadow: 0 0 16px 8px rgba(255,255,255,0.45);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
