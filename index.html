@@ -118,6 +118,13 @@ function biscolabLaravelReCaptcha(token) {
 .grecaptcha-badge iframe { pointer-events: none !important; }
 </style>
 
+
+<style>
+/* Ensure reCAPTCHA badge is always visible (override slide-out) */
+.grecaptcha-badge { right: 10px !important; overflow: visible !important; }
+.grecaptcha-badge:hover { right: 10px !important; }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
