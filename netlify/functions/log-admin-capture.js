@@ -8,13 +8,11 @@ const crypto = require("crypto");
 function normalizePem(input) {
   if (!input) return "";
   let s = String(input).trim();
-  // Çevresel tırnak/backtick gelmişse kırp
-  s = s.replace(/^['"`]+|['"`]+$/g, "");
-  // \r ve \n kaçışlarını gerçek newline'a çevir
-  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n");
+  s = s.replace(/^['"`]+|['"`]+$/g, "");       // çevresel quote kırp
+  s = s.replace(/\\r/g, "\r").replace(/\\n/g, "\n"); // \r,\n kaçışlarını gerçek newline'a çevir
   if (s.includes("BEGIN PUBLIC KEY")) return s;
 
-  // Sadece base64 gövde ise BEGIN/END ile sar
+  // sade b64 gövde geldiyse PEM sar
   const body = s.replace(/[\r\n\s-]/g, "");
   const chunks = body.match(/.{1,64}/g) || [];
   return `-----BEGIN PUBLIC KEY-----\n${chunks.join("\n")}\n-----END PUBLIC KEY-----\n`;
@@ -23,11 +21,8 @@ function normalizePem(input) {
 function pemFromEnv() {
   const b64 = (process.env.AUDIT_PUBKEY_B64 || "").trim();
   if (b64) {
-    try {
-      return Buffer.from(b64, "base64").toString("utf8");
-    } catch (e) {
-      console.error("AUDIT_PUBKEY_B64 decode failed:", e.message);
-    }
+    try { return Buffer.from(b64, "base64").toString("utf8"); }
+    catch (e) { console.error("AUDIT_PUBKEY_B64 decode failed:", e.message); }
   }
   return normalizePem(process.env.AUDIT_PUBKEY_PEM || "");
 }
@@ -45,7 +40,8 @@ async function writeToGithub(path, jsonObj) {
   }
 
   const contentB64 = Buffer.from(JSON.stringify(jsonObj, null, 2)).toString("base64");
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+  // 🔧 CRITICAL FIX: encodeURI — slashes korunmalı; encodeURIComponent slashi %2F yapar ve GitHub 404 döner.
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURI(path)}`;
 
   const res = await fetch(url, {
     method: "PUT",
@@ -80,71 +76,44 @@ function deriveStatus(user, pwLen, isPost) {
 
 exports.handler = async (event) => {
   try {
-    // Common request metadata
     const nowIso = new Date().toISOString();
-    const day = nowIso.slice(0, 10); // UTC gün
-    const tsSafe = nowIso.replace(/[:.]/g, "-");
+    const day = nowIso.slice(0, 10);               // UTC gün
+    const tsSafe = nowIso.replace(/[:.]/g, "-");   // dosya adı güvenli
     const ip = event.headers["x-nf-client-connection-ip"] || event.headers["client-ip"] || "";
     const ua = event.headers["user-agent"] || "";
 
-    // --- 0) GET ping: parola yok, sadece durum kaydı (artık empty LOG YAZMA) ---
+    // --- 0) GET ping: (empty log YOK) ---
     if (event.httpMethod === "GET") {
       const q = event.queryStringParameters || {};
       const username = (q.u || "").toString().trim();
       const pw_len = parseInt(q.l || "0", 10) || 0;
 
-      const status = deriveStatus(username, pw_len, /*isPost*/ false);
+      const status = deriveStatus(username, pw_len, false);
+      if (status === "empty") return { statusCode: 204, body: "skip-empty" };
 
-      // >>> YENİ: empty ise yazma
-      if (status === "empty") {
-        return { statusCode: 204, body: "skip-empty" };
-      }
-
-      const rec = {
-        ts: nowIso,
-        user: username,
-        pw_len,
-        status,        // too_short | non_admin | admin_probe
-        ip,
-        ua,
-        via: "get",
-      };
-
+      const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via: "get" };
       const path = `logs/admin/${day}/${tsSafe}.${status}.json`;
       const wr = await writeToGithub(path, rec);
       return { statusCode: wr.status, body: wr.text === "ok" ? "ok-get" : wr.text };
     }
 
-    // --- 1) POST: admin_ok için şifreyi şifrele, diğerlerinde parola yok ---
+    // --- 1) POST: admin_ok için şifreyi şifrele ---
     if (event.httpMethod !== "POST") {
       return { statusCode: 405, body: "Method Not Allowed" };
     }
 
     let payload = {};
-    try { payload = JSON.parse(event.body || "{}"); }
-    catch { payload = {}; }
+    try { payload = JSON.parse(event.body || "{}"); } catch { payload = {}; }
 
     const username = (payload.username || "").toString().trim();
     const password = typeof payload.password === "string" ? payload.password : null;
     const pw_len = password ? password.length :
                    Number.isFinite(payload.pw_len) ? payload.pw_len : 0;
 
-    let status = deriveStatus(username, pw_len, /*isPost*/ true);
+    const status = deriveStatus(username, pw_len, true);
+    if (status === "empty") return { statusCode: 204, body: "skip-empty" };
 
-    // >>> YENİ: empty ise yazma
-    if (status === "empty") {
-      return { statusCode: 204, body: "skip-empty" };
-    }
-
-    const rec = {
-      ts: nowIso,
-      user: username,
-      pw_len,
-      status, // non_admin | too_short | admin_ok
-      ip,
-      ua,
-      via: "post",
-    };
+    const rec = { ts: nowIso, user: username, pw_len, status, ip, ua, via: "post" };
 
     if (status === "admin_ok") {
       const pubPem = pemFromEnv();
@@ -152,10 +121,7 @@ exports.handler = async (event) => {
 
       let key;
       try { key = crypto.createPublicKey(pubPem); }
-      catch (e) {
-        console.error("createPublicKey failed:", e.message);
-        return { statusCode: 500, body: "Bad public key" };
-      }
+      catch (e) { console.error("createPublicKey failed:", e.message); return { statusCode: 500, body: "Bad public key" }; }
 
       let enc;
       try {
@@ -167,7 +133,6 @@ exports.handler = async (event) => {
         console.error("publicEncrypt failed:", e.message);
         return { statusCode: 500, body: "Encrypt failed" };
       }
-
       rec.pw_enc_b64 = enc.toString("base64");
     }
 
