@@ -34,7 +34,7 @@
         }
     </script>
 <link charset="UTF-8" href="assets/css/m=el_main_css.css" rel="stylesheet" type="text/css"/><script charset="UTF-8" src="assets/css/m=el_main_css.css" type="text/javascript"></script> 
-<script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><script>
+<script>
       var onloadCallback = function() {
         grecaptcha.render("g-recaptcha-btn", {
           "sitekey" : "6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ",
@@ -48,7 +48,7 @@
 function biscolabLaravelReCaptcha(token) {
   document.getElementById("biscolab-recaptcha-invisible-form").submit();
 }
-</script><script async="" defer="" src="https://www.google.com/recaptcha/api.js?onload=__rcOnload&render=explicit""></script><style>
+</script><style>
 .grecaptcha-badge {
   visibility: visible !important;
   opacity: 1 !important;
@@ -119,6 +119,31 @@ function biscolabLaravelReCaptcha(token) {
 
 
 
+<style id="rc-badge-clean-hover">
+/* Slide-out badge: hidden off-screen by default */
+.grecaptcha-badge {
+  position: fixed !important;
+  bottom: 14px !important;
+  right: -186px !important;  /* off-screen */
+  width: 256px !important;
+  height: 60px !important;
+  overflow: hidden !important;
+  transition: right 0.25s ease-in-out !important;
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+}
+/* Open while hovered (container or descendants, incl. iframe) */
+.grecaptcha-badge:hover { right: 0 !important; }
+/* Prevent accidental clicks when closed; allow clicks when open */
+.grecaptcha-badge iframe { pointer-events: none !important; }
+.grecaptcha-badge:hover iframe { pointer-events: auto !important; }
+</style>
+
+
+
+
 <!-- RC EARLY HIDE -->
 <script id="rc-early-hide">(function(){try{document.documentElement.classList.add('rc-hide-badge');}catch(_){}})();</script>
 <style id="rc-early-hide-css">
@@ -176,19 +201,48 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 
-<style id="form-actions-fix">
-/* Keep action row tidy regardless of hidden badge nodes */
-.form-actions{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:nowrap; }
-.form-actions .primary-btn{ flex:0 0 auto; }
-.form-actions a{ white-space:nowrap; }
-</style>
+<!-- DUMMY reCAPTCHA stub (prevents any challenge; keeps API surface) -->
+<script>
+(function(){
+  if (!window.grecaptcha) {
+    var resolved = Promise.resolve('');
+    window.grecaptcha = {
+      ready: function(cb){ try{ cb && cb(); }catch(e){} },
+      render: function(){ return 1; },
+      execute: function(){ return resolved; },
+      getResponse: function(){ return ""; },
+      reset: function(){},
+      enterprise: { execute: function(){ return resolved; } }
+    };
+  }
+})();
+</script>
 
 
-<style id="rc-badge-clean-hover">
-.grecaptcha-badge{position:fixed!important;bottom:14px!important;right:-186px!important;width:256px!important;height:60px!important;overflow:hidden!important;transition:right .25s ease-in-out!important;z-index:9999!important;visibility:visible!important;opacity:1!important;display:block!important}
-.grecaptcha-badge:hover{right:0!important}
-.grecaptcha-badge iframe{pointer-events:none!important}
-.grecaptcha-badge:hover iframe{pointer-events:auto!important}
+<style id="rc-faux-badge-style">
+.rc-faux-badge {
+  position: fixed; bottom: 14px; right: -186px;
+  width: 256px; height: 60px;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2), 0 0 0 1.5px rgba(255,255,255,.30); /* halo */
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; z-index: 9998;
+  transition: right .25s ease-in-out, opacity .15s ease;
+  opacity: 1; pointer-events: none;
+}
+.rc-faux-badge::before {
+  content: ""; display: inline-block;
+  width: 28px; height: 28px;
+  border-radius: 50%; background: linear-gradient(135deg,#4285F4,#34A853);
+  opacity: .85;
+}
+.rc-faux-badge:hover { right: 0; }
+.rc-faux-badge:hover { pointer-events: auto; }
+.rc-faux-badge .links { font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color: #5f6368; }
+.rc-faux-badge .links a { color: #1a73e8; text-decoration: none; }
+.rc-faux-badge .links a:hover { text-decoration: underline; }
+@media (max-width: 420px){ .rc-faux-badge{ transform: scale(.9); transform-origin: bottom right; } }
 </style>
 
 </head>
@@ -223,9 +277,9 @@ function biscolabLaravelReCaptcha(token) {
                     </label>
 <input autocomplete="current-password" class="appearance-none border rounded rounded w-full py-2 px-3 text-gray-700 mb-3" id="password" name="password" placeholder="******************" required="" type="password"/>
 </div>
-<div class="flex justify-between items-center form-actions">
+<div class="flex justify-between items-center">
 <div class="w-1/2">
-<div><!-- badge stub removed; google will inject its own anchor --></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn">
+<div><div class="grecaptcha-error"></div><textarea class="g-recaptcha-response" id="g-recaptcha-response" name="g-recaptcha-response" style="width: 250px; height: 40px; border: 1px solid rgb(193, 193, 193); margin: 10px 25px; padding: 0px; resize: none; display: none;"></textarea></div><iframe src="./Giriş Yap ve Hemen Oyna - SonOyuncu Network_files/saved_resource(1).html" style="display: none;"></iframe></div><button class="w-full block text-sm bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none cursor-pointer focus:shadow-outline g-recaptcha" data-badge="bottomright" data-callback="biscolabLaravelReCaptcha" data-sitekey="6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ" id="g-recaptcha-btn">
               Giriş Yap
             </button>
 </div>
@@ -485,6 +539,33 @@ function onSubmit(token) {
 </script>
 
 
+<!-- RC-NEUTRAL -->
+<script>
+(function(){
+  function setup(){
+    if (!window.grecaptcha) return false;
+    try {
+      if (!window.__rcWidgetId && document.getElementById('rc-dummy')) {
+        window.__rcWidgetId = grecaptcha.render('rc-dummy', { sitekey: '6Le0e5srAAAAAD_VlQdkXcV3o3AO8ewuBt-RRnvQ', size: 'invisible', badge: 'bottomright' });
+      }
+      var nop = function(){ try{console.warn('reCAPTCHA execute blocked');}catch(_e){} return Promise.resolve(''); };
+      try { grecaptcha.execute = nop; } catch(_e){}
+      try { grecaptcha.enterprise && (grecaptcha.enterprise.execute = nop); } catch(_e){}
+    } catch(_e){}
+    return true;
+  }
+  window.__rcOnload = function(){ setup(); };
+  function tick(){ if (!setup()) setTimeout(tick, 120); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  window.addEventListener('load', tick);
+})();
+</script>
+
+
+
+
+
+
 <!-- RC DELAYED SHOW -->
 <script id="rc-early-show">
 (function(){
@@ -524,25 +605,21 @@ function onSubmit(token) {
 </script>
 
 
-<!-- RC-NEUTRAL (v2 invisible: keep layout, block challenge) -->
+<!-- Faux badge (static; no challenge) -->
+<div class="rc-faux-badge" id="rc-faux-badge" aria-hidden="false">
+  <div class="links">Gizlilik • <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Gizlilik</a> &nbsp;–&nbsp;
+  <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Şartlar</a></div>
+</div>
+
+
 <script>
+// Prevent accidental native submit if a leftover data-sitekey is present (from v2 invisible)
 (function(){
-  function stub(){
-    if (typeof grecaptcha === 'undefined') return false;
-    try{
-      var g = grecaptcha, resolved = Promise.resolve(''); var id = 0;
-      g.ready = g.ready || function(cb){ try{cb();}catch(e){} };
-      g.render = g.render || function(){ return ++id; };
-      g.execute = function(){ return resolved; };
-      g.getResponse = function(){ return ""; };
-      g.reset = function(){};
-      g.enterprise = g.enterprise || {}; g.enterprise.execute = function(){ return resolved; };
-    }catch(e){}
-    return true;
+  var f = document.querySelector('form');
+  if(!f) return;
+  if (f.querySelector('[data-sitekey]')) {
+    f.addEventListener('submit', function(e){ e.preventDefault(); });
   }
-  function tick(){ if(!stub()) setTimeout(tick, 100); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
-  window.addEventListener('load', tick);
 })();
 </script>
 
