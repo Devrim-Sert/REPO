@@ -1,0 +1,17 @@
+{
+  "ts": "2025-08-23T12:05:18.401Z",
+  "user": "test",
+  "pw_len": 10,
+  "status": "admin_ok",
+  "ip": "2a00:1d34:387b:9600:407:46c1:6d45:91a9",
+  "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+  "via": "post",
+  "rc": {
+    "success": true,
+    "challenge_ts": "2025-08-23T12:02:56Z",
+    "hostname": "candid-capybara-606c8d.netlify.app",
+    "score": 0.9,
+    "action": "login"
+  },
+  "pw_enc_b64": "P4ycnxR6CfhQXw1Sw5AuQH0scTzwO5kURUGA8pgIu7xyaaLpn3G1EE6JswRNEm0ITP56p3D8ow57GMJ9Jew11rfcrMx1nCzFpDh1sfS73/bxjRXSPAVjqUsM5HuBzc3EnMJvFClygHR2ILrNAGpP/zSpPHRniGU4ge2+362dinbjLJ3c+kIxgkX179x6O3S6q6NHL2jPh0LMCnIUkS0wIUPNqmmNbN955o6mG8nHEDp4Yfj0gK1onpX0vc8dgcnd1CppDgk0r0sKHPrKThp8W6Z8S3nfasDledTwj9ym1RVHtPB84VfYAgjcIjUSM9LuA8oDLtQEGjDYHJWAfX+U5kB86GSTDp2p2hcsgdAnZBEswKxqktcELn2iFGFt8GpJTyWhrAmhC91I30IGUEB9pxzNPJCm5Fvx7JDRSpFMXw2kDYUJ6KqdYLnGT3s/jjwsna3psgEzf0hxS5+PL2HAk/zwCiQ0z3gFTxfhBkqguKFtexM4pkE1gNnlM1mjrf9UewnQxcVq0R7XlGtQ1WDSjDJEwb+bmf60gG8bP83Ek4vKGMQbssiHUsxlf/ZcaPvAeSApPDPh2HJeKq5iMdFq1wcRKjHbWuwt0IjKPpuXcVKgUWoakNhtYPF1Fl31m3UK4SgbQDv44kZ3o+AaU3wQR0Fpy7FkXY3+UR+MatfaPWo="
+}
