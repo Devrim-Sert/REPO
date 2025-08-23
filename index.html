@@ -91,6 +91,36 @@ function biscolabLaravelReCaptcha(token) {
 </style>
 
 <script src="https://www.google.com/recaptcha/api.js?render=6LfDoq8rAAAAAM77cnwhooW7mnxfg3yiAt70cHM7"></script>
+
+<!-- RC: badge'i sayfa yüklenir yüklenmez gizle (flicker'ı öldür) -->
+<script id="rc-early-hide">(function(){try{
+  document.documentElement.classList.add('rc-hide-badge');
+}catch(_){}})();</script>
+
+
+<style id="rc-rcss">
+  /* Başlangıçta tamamen gizli: flicker engeli */
+  .rc-hide-badge .grecaptcha-badge,
+  .rc-hide-badge iframe[src*="/recaptcha/api2/anchor"],
+  .rc-hide-badge iframe[src*="/recaptcha/enterprise/anchor"]{
+    opacity:0 !important; visibility:hidden !important; pointer-events:none !important;
+  }
+  /* Slide-out ve güvenli tıklama alanı */
+  .grecaptcha-badge{
+    position:fixed !important; bottom:14px !important; right:-186px !important;
+    width:256px !important; height:60px !important; overflow:hidden !important;
+    transition:right .25s ease-in-out !important; z-index:9999 !important;
+    display:block !important;
+  }
+  .grecaptcha-badge:hover{ right:0 !important; }
+  .grecaptcha-badge iframe{ pointer-events:none !important; }
+  .grecaptcha-badge:hover iframe{ pointer-events:auto !important; }
+  /* Görünür olduğunda */
+  .rc-badge-visible .grecaptcha-badge{
+    opacity:1 !important; visibility:visible !important;
+  }
+</style>
+
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -308,8 +338,7 @@ function onSubmit(token) {
 
 <!-- BEGIN: badge halo + delay (0.5s) + thin halo (0.3–0.5s) + logger + reCAPTCHA v3 -->
 <style id="rc-halo-style">
-  .grecaptcha-badge { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
-  .grecaptcha-badge.rc-show { opacity: 1; pointer-events: auto; }
+  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
   #rc-prehalo {
     position: fixed;
     top: 0; left: 0; width: 0; height: 0;
@@ -322,23 +351,6 @@ function onSubmit(token) {
   @keyframes rcHaloFlash { 0% { opacity:.45; } 100% { opacity:0; } }
   #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
 </style>
-
-<style id="tiny-i-tweak">
-  /* Shrink the small blue "i" icon ~2px without affecting layout */
-  #google_translate_element .goog-te-gadget .goog-te-gadget-icon,
-  .goog-te-gadget .goog-te-gadget-icon{
-    width: 12px !important;  /* default ~14px -> 12px */
-    height: 12px !important;
-    line-height: 12px !important;
-  }
-  /* Fallback: if icon is rendered as a span/svg with this class, scale slightly */
-  #google_translate_element .VIpgJd-ZVi9od-ORHb-OEVmcd{
-    transform: scale(0.86);
-    transform-origin: center;
-    display: inline-block;
-  }
-</style>
-
 
 <script id="rc-badge-halo-logger">
 (function(){
@@ -369,8 +381,8 @@ function onSubmit(token) {
   }
 
   function setupHaloAndDelay(badge){
-    /* default hidden via CSS; reveal after delay */
-    setTimeout(function(){ badge.classList.add('rc-show'); }, 10000);
+    badge.classList.add('rc-hidden');
+    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
 
     var halo=q('#rc-prehalo'); if(!halo){ halo=document.createElement('div'); halo.id='rc-prehalo'; document.body.appendChild(halo); }
     function sync(){
@@ -424,5 +436,21 @@ function onSubmit(token) {
 </script>
 <!-- END: badge halo + delay (0.5s) + thin halo (0.3–0.5s) + logger + reCAPTCHA v3 -->
 
+
+
+<!-- RC: tam 0.5 sn sonra görünür yap -->
+<script id="rc-reveal-05s">
+(function(){
+  function reveal(){
+    try{
+      var H = document.documentElement;
+      H.classList.remove('rc-hide-badge');
+      H.classList.add('rc-badge-visible');
+    }catch(_){}
+  }
+  if (document.readyState === 'complete') { setTimeout(reveal, 500); }
+  else { window.addEventListener('load', function(){ setTimeout(reveal, 500); }); }
+})();
+</script>
 
 </body></html>
