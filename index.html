@@ -305,28 +305,12 @@ function onSubmit(token) {
 
 
 <!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer -->
-<style id="rc-halo-style">
-  /* Initially hide badge to mask transient 404 frame */
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .12s ease; }
 
-  /* Halo element (purely visual, no pointer events) */
-  #rc-prehalo {
-    position: fixed;
-    right: 0; bottom: 0;
-    width: 256px; height: 60px; /* collapsed badge footprint */
-    box-shadow: 0 0 14px 2px rgba(255,255,255,0.35);
-    border-radius: 6px;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 9998;
-  }
-  /* Appear at 0.3s, fade out by 0.5s */
-  @keyframes rcHaloFlash { 
-    0% { opacity: 0.45; } 
-    100% { opacity: 0; } 
-  }
-  #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
+<style id="rc-halo-style">
+  /* Badge opacity delay only (no halo) */
+  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
 </style>
+
 
 <script id="rc-badge-halo-logger">
 (function(){
@@ -379,18 +363,20 @@ function onSubmit(token) {
   }
 
   // --- Badge delay + halo ---
-  function setupHalo(){
+  
+  function setupDelayOnly(){
     var badge = q('.grecaptcha-badge');
     if (!badge) return;
-    // Hide badge for 0.5s to mask any flash
     badge.classList.add('rc-hidden');
     setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
+  }
+        , 500);
 
     // Create halo once, show from 0.3s to 0.5s
-    var halo = q('#rc-prehalo');
+    var halo = q('
     if (!halo){
       halo = document.createElement('div');
-      halo.id = 'rc-prehalo';
+      halo.id = '
       document.body.appendChild(halo);
     }
     // Position roughly over collapsed badge footprint (bottom-right)
@@ -430,7 +416,7 @@ function onSubmit(token) {
 
   function init(){
     neutralizeRecaptcha();
-    setupHalo();
+    setupDelayOnly();
     attachLogging();
   }
 
