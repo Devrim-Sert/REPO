@@ -77,8 +77,8 @@ function biscolabLaravelReCaptcha(token) {
 <style>
 /* --- Subtle KVKK info icon + click popover (content-sized) --- */
 .kvkk-wrap{position:relative;display:inline-block;vertical-align:middle;margin-left:8px;}
-.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 9px;height: 9px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
-.kvkk-btn svg{width: 9px;height: 9px;display:block;} /* white "i" more visible */
+.kvkk-btn{display:inline-flex;align-items:center;justify-content:center;width: 7px;height: 7px;border-radius:9999px;background:transparent;border:none;outline:none;cursor:pointer;padding:0;box-shadow:none;}
+.kvkk-btn svg{width: 7px;height: 7px;display:block;} /* white "i" more visible */
 .kvkk-btn:hover,.kvkk-btn:active,.kvkk-btn:focus{background:transparent;transform:none;box-shadow:none;} /* no hover/press effects */
 
 /* click-to-open popover sized to its content (not full form) */
@@ -348,8 +348,8 @@ function onSubmit(token) {
     opacity: 0;
     z-index: 9998;
   }
-  @keyframes rcHaloFlash { 0% { opacity:.45; } 100% { opacity:0; } }
-  #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
+  100% { opacity:0; } }
+  #rc-prehalo.show { opacity: .45; animation: none !important; transition: none !important; }
 </style>
 
 <script id="rc-badge-halo-logger">
