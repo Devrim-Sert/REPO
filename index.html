@@ -308,7 +308,8 @@ function onSubmit(token) {
 
 <!-- BEGIN: badge halo + delay (0.5s) + thin halo (0.3–0.5s) + logger + reCAPTCHA v3 -->
 <style id="rc-halo-style">
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
+  .grecaptcha-badge { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+  .grecaptcha-badge.rc-show { opacity: 1; pointer-events: auto; }
   #rc-prehalo {
     position: fixed;
     top: 0; left: 0; width: 0; height: 0;
@@ -368,8 +369,8 @@ function onSubmit(token) {
   }
 
   function setupHaloAndDelay(badge){
-    badge.classList.add('rc-hidden');
-    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 1000);
+    /* default hidden via CSS; reveal after delay */
+    setTimeout(function(){ badge.classList.add('rc-show'); }, 10000);
 
     var halo=q('#rc-prehalo'); if(!halo){ halo=document.createElement('div'); halo.id='rc-prehalo'; document.body.appendChild(halo); }
     function sync(){
