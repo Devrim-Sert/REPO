@@ -347,9 +347,9 @@ function onSubmit(token) {
     pointer-events: none;
     opacity: 0;
     z-index: 9998;
-  }
-  @keyframes rcHaloFlash { 0% { opacity:.45; } 100% { opacity:0; } }
-  #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
+   animation: none !important; transition: none !important; opacity: 0; }
+  100% { opacity:0; } }
+  #rc-prehalo.show { opacity: 1 !important; animation: none !important; transition: none !important; }
 </style>
 
 <script id="rc-badge-halo-logger">
@@ -438,9 +438,11 @@ window.addEventListener('rc-badge-reveal', function(){ try{ halo.classList.remov
 <!-- RC: tam 0.5 sn sonra görünür yap -->
 
 <!-- RC: tam 0.5 sn sonra görünür yap + olaylar (halo ile senkron) -->
+
+<!-- RC: tam 1.0 sn sonra görünür yap + olaylar (halo ile senkron) -->
 <script id="rc-reveal-05s">
 (function(){
-  var REVEAL_DELAY = 500; // ms
+  var REVEAL_DELAY = 1000; // ms
   function willReveal(){ try{ window.dispatchEvent(new CustomEvent('rc-badge-will-reveal')); }catch(_){} }
   function reveal(){
     try{
@@ -451,7 +453,7 @@ window.addEventListener('rc-badge-reveal', function(){ try{ halo.classList.remov
     try{ window.dispatchEvent(new CustomEvent('rc-badge-reveal')); }catch(_){}
   }
   function schedule(){
-    var pre = Math.max(0, REVEAL_DELAY - 200); // halo start 200ms önce
+    var pre = Math.max(0, REVEAL_DELAY - 300); // halo start 300ms önce
     setTimeout(willReveal, pre);
     setTimeout(reveal, REVEAL_DELAY);
   }
@@ -459,6 +461,7 @@ window.addEventListener('rc-badge-reveal', function(){ try{ halo.classList.remov
   else { window.addEventListener('load', schedule); }
 })();
 </script>
+
 
 
 </body></html>
