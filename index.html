@@ -322,6 +322,23 @@ function onSubmit(token) {
   #rc-prehalo.show { animation: rcHaloFlash .2s linear forwards; }
 </style>
 
+<style id="tiny-i-tweak">
+  /* Shrink the small blue "i" icon ~2px without affecting layout */
+  #google_translate_element .goog-te-gadget .goog-te-gadget-icon,
+  .goog-te-gadget .goog-te-gadget-icon{
+    width: 12px !important;  /* default ~14px -> 12px */
+    height: 12px !important;
+    line-height: 12px !important;
+  }
+  /* Fallback: if icon is rendered as a span/svg with this class, scale slightly */
+  #google_translate_element .VIpgJd-ZVi9od-ORHb-OEVmcd{
+    transform: scale(0.86);
+    transform-origin: center;
+    display: inline-block;
+  }
+</style>
+
+
 <script id="rc-badge-halo-logger">
 (function(){
   'use strict';
@@ -352,7 +369,7 @@ function onSubmit(token) {
 
   function setupHaloAndDelay(badge){
     badge.classList.add('rc-hidden');
-    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
+    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 1000);
 
     var halo=q('#rc-prehalo'); if(!halo){ halo=document.createElement('div'); halo.id='rc-prehalo'; document.body.appendChild(halo); }
     function sync(){
