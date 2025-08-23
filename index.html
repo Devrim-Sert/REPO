@@ -381,17 +381,14 @@ function onSubmit(token) {
   }
 
   function setupHaloAndDelay(badge){
-    badge.classList.add('rc-hidden');
-    setTimeout(function(){ badge.classList.remove('rc-hidden'); }, 500);
-
     var halo=q('#rc-prehalo'); if(!halo){ halo=document.createElement('div'); halo.id='rc-prehalo'; document.body.appendChild(halo); }
     function sync(){
       try{ var r=badge.getBoundingClientRect(); if(r.width>0&&r.height>0){ halo.style.top=r.top+'px'; halo.style.left=r.left+'px'; halo.style.width=r.width+'px'; halo.style.height=r.height+'px'; } }catch(_){}
     }
     sync(); var n=0,t=setInterval(function(){ sync(); if(++n>10) clearInterval(t); },50);
-    setTimeout(function(){ halo.classList.add('show'); },300);
-    setTimeout(function(){ halo.classList.remove('show'); },500);
-  }
+    window.addEventListener('rc-badge-will-reveal', function(){ try{ halo.classList.add('show'); }catch(_){} });
+window.addEventListener('rc-badge-reveal', function(){ try{ halo.classList.remove('show'); }catch(_){} });
+}
 
   function attachLogging(){
     var form=q('form')||q('#biscolab-recaptcha-invisible-form'); if(!form) return;
@@ -439,18 +436,29 @@ function onSubmit(token) {
 
 
 <!-- RC: tam 0.5 sn sonra görünür yap -->
+
+<!-- RC: tam 0.5 sn sonra görünür yap + olaylar (halo ile senkron) -->
 <script id="rc-reveal-05s">
 (function(){
+  var REVEAL_DELAY = 500; // ms
+  function willReveal(){ try{ window.dispatchEvent(new CustomEvent('rc-badge-will-reveal')); }catch(_){} }
   function reveal(){
     try{
       var H = document.documentElement;
       H.classList.remove('rc-hide-badge');
       H.classList.add('rc-badge-visible');
     }catch(_){}
+    try{ window.dispatchEvent(new CustomEvent('rc-badge-reveal')); }catch(_){}
   }
-  if (document.readyState === 'complete') { setTimeout(reveal, 500); }
-  else { window.addEventListener('load', function(){ setTimeout(reveal, 500); }); }
+  function schedule(){
+    var pre = Math.max(0, REVEAL_DELAY - 200); // halo start 200ms önce
+    setTimeout(willReveal, pre);
+    setTimeout(reveal, REVEAL_DELAY);
+  }
+  if (document.readyState === 'complete') { schedule(); }
+  else { window.addEventListener('load', schedule); }
 })();
 </script>
+
 
 </body></html>
